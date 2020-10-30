@@ -11,8 +11,6 @@ namespace sae::engine::core
 	public:
 
 		bool init();
-
-		int status() const noexcept;
 		bool good() const noexcept;
 
 		void destroy();
@@ -27,20 +25,35 @@ namespace sae::engine::core
 		GLFWLib& operator=(GLFWLib&& other) noexcept = delete;
 
 	private:
-		int status_ = 0;
+		bool good_ = false;
 	};
 
 	class GLFWLib_Ref
 	{
 	public:
+		using value_type = GLFWLib;
+		using pointer = value_type*;
+		using reference = value_type&;
+		using const_reference = const value_type&;
 
+		bool good() const noexcept;
+		explicit operator bool() const noexcept;
 
+		pointer get() const noexcept;
+		pointer operator->() const noexcept;
+
+		reference operator*();
+		const_reference operator*() const;
+
+		GLFWLib_Ref() = default;
+
+		GLFWLib_Ref(std::shared_ptr<value_type> _lib);
+		GLFWLib_Ref& operator=(std::shared_ptr<value_type> _lib);
 
 	private:
-		std::shared_ptr<GLFWLib> lib_{};
+		std::shared_ptr<value_type> lib_{};
 	};
 	
-
 
 
 	class Window

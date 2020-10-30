@@ -12,25 +12,28 @@ namespace sae::engine::core
 
 	bool GLFWLib::init()
 	{
-		this->status_ = glfwInit();
+		if (!this->good())
+		{
+			this->good_ = glfwInit();
 #ifdef SAE_ENGINE_CORE_HARD_ERRORS
-		assert(this->good());
+			assert(this->good());
 #endif
+		};
 		return this->good();
 	};
 
-	int GLFWLib::status() const noexcept
-	{
-
-	};
 	bool GLFWLib::good() const noexcept
 	{
-
+		return this->good_;
 	};
 
 	void GLFWLib::destroy()
 	{
-
+		if (this->good())
+		{
+			glfwTerminate();
+			this->good_ = false;
+		};
 	};
 
 	GLFWLib::GLFWLib()
@@ -39,11 +42,51 @@ namespace sae::engine::core
 	};
 	GLFWLib::~GLFWLib()
 	{
-
+		this->destroy();
 	};
 
 }
 
+namespace sae::engine::core
+{
+
+	bool GLFWLib_Ref::good() const noexcept
+	{
+		return (bool)this->lib_;
+	};
+	GLFWLib_Ref::operator bool() const noexcept
+	{
+		return this->good();
+	};
+
+	GLFWLib_Ref::pointer GLFWLib_Ref::get() const noexcept
+	{ 
+		return this->lib_.get();
+	};
+	GLFWLib_Ref::pointer GLFWLib_Ref::operator->() const noexcept 
+	{ 
+		return this->lib_.get(); 
+	};
+
+	GLFWLib_Ref::reference GLFWLib_Ref::operator*()
+	{
+		return *this->get();
+	};
+	GLFWLib_Ref::const_reference GLFWLib_Ref::operator*() const
+	{
+		return *this->get();
+	};
+
+	GLFWLib_Ref::GLFWLib_Ref(std::shared_ptr<value_type> _lib) : 
+		lib_{ _lib }
+	{};
+	GLFWLib_Ref& GLFWLib_Ref::operator=(std::shared_ptr<value_type> _lib)
+	{
+		this->lib_ = _lib;
+		return *this;
+	};
+
+}
 
 
 
