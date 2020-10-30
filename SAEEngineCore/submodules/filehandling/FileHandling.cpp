@@ -3,10 +3,26 @@
 
 namespace sae::engine::core
 {
+	
 
-	void bar()
+	void OpenFile(std::string filename) 
 	{
-		lout << "test!\n";
-	};
+		// TODO: refactor this 
+		try
+		{
+			std::ifstream file;
+			file.open(filename);
+
+			std::string data;
+
+			file >> data;
+			lout << "data \n" << data << "\n";
+		}
+		catch(const std::exception& e)
+		{
+			lout << "Error opening " << filename;
+		};
+		
+	}
 
 }
