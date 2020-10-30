@@ -1,0 +1,8 @@
+add_subdirectory("environment")
+add_subdirectory("shader")
+add_subdirectory("texture")
+add_subdirectory("filehandling")
+add_subdirectory("event")
+add_subdirectory("widget")
+add_subdirectory("window")
+add_subdirectory("logging")
