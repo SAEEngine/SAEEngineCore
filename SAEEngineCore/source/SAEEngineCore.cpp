@@ -10,7 +10,7 @@ namespace sae::engine
 	void foo()
 	{
 
-		sae::engine::bar();
+		core::bar();
 
 	};
 }

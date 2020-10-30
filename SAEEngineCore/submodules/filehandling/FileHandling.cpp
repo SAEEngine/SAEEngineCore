@@ -1,12 +1,12 @@
 #include "FileHandling.h"
 #include "Logging.h"
 
-namespace sae::engine
+namespace sae::engine::core
 {
 
 	void bar()
 	{
-        core::lout << "test!\n";
+		lout << "test!\n";
 	};
 
 }

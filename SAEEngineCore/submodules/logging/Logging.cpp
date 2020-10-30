@@ -17,6 +17,7 @@ namespace sae::engine::core
 	};
 	void LogStream::_Post_Write() const noexcept
 	{
+#pragma warning( suppress: 26110 )
 		LOG_MTX.unlock();
 	};
 

@@ -1,8 +1,6 @@
 #pragma once
 
-#include "Logging.h"
-
-namespace sae::engine
+namespace sae::engine::core
 {
 
 	void bar();
