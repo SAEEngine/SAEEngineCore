@@ -1,4 +1,4 @@
-add_subdirectory("environment_wrap")
+add_subdirectory("environment")
 add_subdirectory("shader")
 add_subdirectory("texture")
 add_subdirectory("filehandling")
