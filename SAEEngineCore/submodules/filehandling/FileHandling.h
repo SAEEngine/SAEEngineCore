@@ -5,6 +5,6 @@
 namespace sae::engine::core
 {
 
-	void OpenFile(std::string filename);
+	std::string OpenFile(std::string filename);
 
 }
