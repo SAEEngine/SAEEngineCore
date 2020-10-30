@@ -1,8 +1,51 @@
 #include "Environment.h"
 
+#include "SAEEngineCoreConfig.h"
+
 #include <GLFW/glfw3.h>
 
 #include <functional>
+#include <cassert>
+
+namespace sae::engine::core
+{
+
+	bool GLFWLib::init()
+	{
+		this->status_ = glfwInit();
+#ifdef SAE_ENGINE_CORE_HARD_ERRORS
+		assert(this->good());
+#endif
+		return this->good();
+	};
+
+	int GLFWLib::status() const noexcept
+	{
+
+	};
+	bool GLFWLib::good() const noexcept
+	{
+
+	};
+
+	void GLFWLib::destroy()
+	{
+
+	};
+
+	GLFWLib::GLFWLib()
+	{
+		this->init();
+	};
+	GLFWLib::~GLFWLib()
+	{
+
+	};
+
+}
+
+
+
 
 namespace sae::engine::core
 {

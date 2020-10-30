@@ -2,9 +2,47 @@
 
 struct GLFWwindow;
 
+#include <memory>
+
 namespace sae::engine::core
 {
+	class GLFWLib
+	{
+	public:
+
+		bool init();
+
+		int status() const noexcept;
+		bool good() const noexcept;
+
+		void destroy();
+
+		GLFWLib();
+		~GLFWLib();
+
+		GLFWLib(const GLFWLib& other) = delete;
+		GLFWLib& operator=(const GLFWLib& other) = delete;
+
+		GLFWLib(GLFWLib&& other) noexcept = delete;
+		GLFWLib& operator=(GLFWLib&& other) noexcept = delete;
+
+	private:
+		int status_ = 0;
+	};
+
+	class GLFWLib_Ref
+	{
+	public:
+
+
+
+	private:
+		std::shared_ptr<GLFWLib> lib_{};
+	};
 	
+
+
+
 	class Window
 	{
 	public:

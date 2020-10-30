@@ -5,7 +5,7 @@
 int main()
 {
 
-	std::cout << "Testing... \n";
+	sae::engine::foo();
 	return 0;
 
 };

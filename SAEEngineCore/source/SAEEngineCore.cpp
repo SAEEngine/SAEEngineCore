@@ -10,7 +10,7 @@ namespace sae::engine
 	void foo()
 	{
 
-		core::lout << "test!\n";
+
 
 	};
 

@@ -10,7 +10,10 @@ add_definitions(-DPROJECT_ROOT="${CMAKE_CURRENT_LIST_DIR}")
 
 project ("SAEEngineCore" VERSION 0.0.1)
 
-configure_file("SAEEngineCoreConfig.h.in" "SAEEngineCoreConfig.h")
+configure_file("SAEEngineCoreConfig.h.in" "${CMAKE_CURRENT_SOURCE_DIR}/config/SAEEngineCoreConfig.h")
+
+add_library(SAEEngineCore_Config INTERFACE)
+target_include_directories(SAEEngineCore_Config INTERFACE "config")
 
 add_subdirectory("lib")
 add_subdirectory("SAEEngineCore")
