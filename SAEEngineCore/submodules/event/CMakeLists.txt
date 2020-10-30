@@ -1,3 +1,3 @@
 
-set(source_list ${source_list} "${CMAKE_CURRENT_SOURCE_DIR}/EventHandling.h" PARENT_SCOPE)
-set(include_list ${include_list} "${CMAKE_CURRENT_SOURCE_DIR}" PARENT_SCOPE)
+target_sources(SAEEngineCore PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/Event.h")
+target_include_directories(SAEEngineCore PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
