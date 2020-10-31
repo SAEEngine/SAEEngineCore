@@ -1,8 +1,10 @@
 #pragma once
+#include <fstream>
+#include <iostream>
 
 namespace sae::engine::core
 {
 
-	void bar();
+	std::string OpenFile(std::string filename);
 
 }
