@@ -1,6 +1,8 @@
 #include "FileHandling.h"
 #include "Logging.h"
 
+#include <fstream>
+
 namespace sae::engine::core
 {
 	
