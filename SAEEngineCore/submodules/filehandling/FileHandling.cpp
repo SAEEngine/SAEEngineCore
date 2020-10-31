@@ -9,23 +9,18 @@ namespace sae::engine::core
 
 			std::ifstream file(filename);		// good job using an ifstream as thats all that is needed
 
-
-			/*TODO: remove after being done with debugging
-			Return type aswell
-			*/
 			if (file)
 			{
+
 				std::string data;		// consider using a std::vector<char> for the data storage as strings are not ment to store information
 				file >> data;
-				lout << data;
 
 				return data;		// Consider creating a type for storing a loaded file's data
 				file.close();
 
 			}
-			lout << "Error opening file or file is empty ";
 				// Id recommend against returning an error as a string as string comparisons are slow
-				// Consider returning a std::optional<T> where T is your data storage type
+				// Consider returning a std::optional<T> where T is your data storage type ✔
 			return {};
 
 		// Go look at the documentation for fstreams and see how error checking and handling is preformed.
