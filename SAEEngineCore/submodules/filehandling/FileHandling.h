@@ -3,10 +3,10 @@
 #include "Logging.h"
 #include <string>
 #include <fstream>
-#include <vector>
+#include <optional>
 namespace sae::engine::core
 {
 
-	std::string OpenFile(std::string filename);
+	std::optional<std::string> OpenFile(std::string filename);
 
 }
