@@ -29,7 +29,6 @@ namespace sae::engine::core
 		{
 			F_TXT = 0,
 			F_PNG,
-			F_XML,
 			BAD_VALUE,
 			FILE_TYPE_E_MAX_VALUE = BAD_VALUE
 		};
@@ -38,7 +37,7 @@ namespace sae::engine::core
 
 		// This should be set to whatever FILE_TYPE_E::BAD_VALUE is equal to just not directly. The static asserts below will help prevent
 		// desync between this value and the true value of FILE_TYPE_E::BAD_VALUE
-		constexpr static inline size_t ENUM_MAX_VALUE = 3;
+		constexpr static inline size_t ENUM_MAX_VALUE = 2;
 		static_assert(ENUM_MAX_VALUE == FILE_TYPE_E::FILE_TYPE_E_MAX_VALUE, "FILE_TYPE::FILE_TYPE_E::FILE_TYPE_E_MAX_VALUE doesn't match FILE_TYPE::ENUM_MAX_VALUE");
 		static_assert(FILE_TYPE_E::BAD_VALUE == FILE_TYPE_E::FILE_TYPE_E_MAX_VALUE, "FILE_TYPE::FILE_TYPE_E::BAD_VALUE doesn't match FILE_TYPE::FILE_TYPE_E::FILE_TYPE_E_MAX_VALUE");
 
