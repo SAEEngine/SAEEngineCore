@@ -1,0 +1,6 @@
+if (BUILD_TESTING)
+	add_executable(SAEEngineCore_FileHandling_FILE_TYPE_Test "FILE_TYPE_test.cpp")
+	target_link_libraries(SAEEngineCore_FileHandling_FILE_TYPE_Test PRIVATE SAEEngineCore)
+	target_include_directories(SAEEngineCore_FileHandling_FILE_TYPE_Test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../")
+	add_test("SAEEngineCore_FileHandling_FILE_TYPE_Test" SAEEngineCore_FileHandling_FILE_TYPE_Test)
+endif()
