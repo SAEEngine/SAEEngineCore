@@ -1,5 +1,7 @@
 #pragma once
 
+#include "SAEEngineCoreConfig.h"
+
 #include <ostream>
 
 namespace sae::engine::core
