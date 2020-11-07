@@ -157,6 +157,7 @@ namespace sae::engine::core
 
 	};
 
+	constexpr static inline int SOME_VALUE_ALIAS = 0;
 
 
 

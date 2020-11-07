@@ -6,6 +6,7 @@ struct GLFWwindow;
 
 namespace sae::engine::core
 {
+
 	class GLFWLib
 	{
 	public:
