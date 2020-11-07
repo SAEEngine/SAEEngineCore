@@ -12,8 +12,7 @@ include(CTest)
 
 add_definitions(-DPROJECT_ROOT="${CMAKE_CURRENT_LIST_DIR}")
 
-set(SAE_ENGINE_CPP_VERSION 17)
-
+set(SAE_ENGINE_CPP_STANDARD cxx_std_17)
 
 configure_file("SAEEngineCoreConfig.h.in" "${CMAKE_CURRENT_SOURCE_DIR}/config/SAEEngineCoreConfig.h")
 

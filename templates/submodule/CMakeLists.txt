@@ -1,8 +1,5 @@
 cmake_minimum_required (VERSION 3.8)
 
-set(CMAKE_CXX_STANDARD ${SAE_ENGINE_CPP_VERSION})
-set(CMAKE_CXX_STANDARD_REQUIRED True)
-
 ### Add the name of the submodule, a brief description, the version, and a link to the github repo to the project() call below
 ###	Example:
 ###		project(SAEEngineCore_StupidSubmodule VERSION 0.0.1 DESCRIPTION "a very stupid submodule" HOMEPAGE_URL "github.com/StupidSubmodule")
@@ -16,6 +13,15 @@ project(
 	HOMEPAGE_URL "https://github.com/SAEEngine/SAEEngineCore"
 )
 
+### Add the following files to the subdirectories included
+###
+### include/${PROJECT_NAME}.h
+### source/${PROJECT_NAME}.cpp
+###
+
+## Create the static library
+add_library(${PROJECT_NAME} STATIC "source/${PROJECT_NAME}.cpp" "include/${PROJECT_NAME}.h")
+
 ### Add source directories from ./source/* to the command below
 ### Example:
 ###
@@ -28,11 +34,29 @@ set(source_dirs
 	
 )
 
+### Add libary targets to link to below, these will be public
+### Example:
+###
+###		set(link_libs_public
+###			SAEEngineCore_Config
+###			AnotherStupidLibrary
+###		)
+###
+set(link_libs_public 
+	SAEEngineCore_Config
+)
 
-
-
-
-
+### Add libary targets to link to below, these will be private
+### Example:
+###
+###		set(link_libs_public
+###			SAEEngineCore_Loggin
+###			glfw
+###		)
+###
+set(link_libs_private
+	
+)
 
 ##
 ##  End of submodule specific configuration section
@@ -40,36 +64,53 @@ set(source_dirs
 
 ## Define the source files variable
 set(src_files 
-	"source/${PROJECT_NAME}.cpp"
-	"include/${PROJECT_NAME}.h" 
-	"config/Config.h"
+
 )
 
-## Create the static library
-add_library(${PROJECT_NAME} STATIC ${src_files})
+## Add the source files
+target_sources(${PROJECT_NAME} PRIVATE ${src_files})
 
 ## Add the source directories
-target_include_directories(${PROJECT_NAME} PUBLIC "include" PRIVATE "config" ${source_dirs})
+target_include_directories(${PROJECT_NAME} PUBLIC "include" PRIVATE "${source_dirs}")
+
+## Add the set libraries
+target_link_libraries(${PROJECT_NAME} PUBLIC ${link_libs_public} PRIVATE ${link_libs_private})
+
+## Set c++ version
+target_compile_options(${PROJECT_NAME} PRIVATE ${SAE_ENGINE_CPP_STANDARD})
 
 ## Add the module root path to the compile definitions 
-target_compile_definitions(${PROJECT_NAME} PRIVATE -D${PROJECT_NAME}_SOURCE_ROOT="${CMAKE_CURRENT_LIST_DIR}")
-
-## Add the module version to the compile definitions 
-target_compile_definitions(${PROJECT_NAME} PRIVATE -D${PROJECT_NAME}_VERSION_MAJOR="${PROJECT_VERSION_MAJOR}")
-target_compile_definitions(${PROJECT_NAME} PRIVATE -D${PROJECT_NAME}_VERSION_MAJOR="${PROJECT_VERSION_MINOR}")
-target_compile_definitions(${PROJECT_NAME} PRIVATE -D${PROJECT_NAME}_VERSION_PATCH="${PROJECT_VERSION_PATCH}")
-
-
-## Set any config variables
-set(SUBMODULE_ROOT "${CMAKE_CURRENT_LIST_DIR}")
-
-## Create config file
-configure_file("${CMAKE_CURRENT_SOURCE_DIR}/config/Config.h.in" "${CMAKE_CURRENT_SOURCE_DIR}/config/Config.h")
+target_compile_definitions(${PROJECT_NAME}
+	PRIVATE SOURCE_ROOT="${CMAKE_CURRENT_LIST_DIR}"
+	PRIVATE VERSION_MAJOR="${PROJECT_VERSION_MAJOR}"
+	PRIVATE VERSION_MAJOR="${PROJECT_VERSION_MINOR}"
+	PRIVATE VERSION_PATCH="${PROJECT_VERSION_PATCH}"
+	PUBLIC ${PROJECT_NAME}_SOURCE_ROOT="${CMAKE_CURRENT_LIST_DIR}"
+	PUBLIC ${PROJECT_NAME}_VERSION_MAJOR="${PROJECT_VERSION_MAJOR}"
+	PUBLIC ${PROJECT_NAME}_VERSION_MAJOR="${PROJECT_VERSION_MINOR}"
+	PUBLIC ${PROJECT_NAME}_VERSION_PATCH="${PROJECT_VERSION_PATCH}"
+)
 
 ## Add the source directories
 foreach(subdir IN ${source_dirs})
 	add_subdirectory(${subdir})
 endforeach()
 
+## Enable testing
+enable_testing()
 
+## Add tests subdirectory
+add_subdirectory("tests")
 
+###
+###  Installation handling below
+###
+
+if(SAE_ENGINE_CORE_INSTALL)
+	install(
+		TARGETS ${PROJECT_NAME} 
+		EXPORT SAEEngineCore-export
+		DESTINATION "lib"
+	)
+	install(FILES "include/${PROJECT_NAME}.h" DESTINATION "include")
+endif()
