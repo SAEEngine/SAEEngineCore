@@ -26,7 +26,7 @@ jobs:
       run: cmake -E make_directory ${{runner.workspace}}/build
 
     - name: Install libxrandr
-      run: vcpkg install libxrandr
+      run: sudo apt-get install xorg-dev
 
     - name: Configure CMake
       # Use a bash shell so we can use the same syntax for environment variable
