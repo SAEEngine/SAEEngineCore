@@ -25,9 +25,9 @@ namespace sae::engine::core
 		};
 	};
 
-	FILE_TYPE::FILE_TYPE_E FILE_TYPE::str_to_enum(const std::string& _str)
+
+	FILE_TYPE::FILE_TYPE_E FILE_TYPE::str_to_enum(const std::string& _str, no_abort_t)
 	{
-		// Call find to return an iterator to the pair. If the string isn't in the map, this should be set to map::end();
 		auto _at = FileType_STRING_TO_ENUM.find(_str);
 		if (_at != FileType_STRING_TO_ENUM.end())
 		{
@@ -36,14 +36,29 @@ namespace sae::engine::core
 		}
 		else
 		{
+			return FILE_TYPE_E::BAD_VALUE;
+		};
+	};
+	FILE_TYPE::FILE_TYPE_E FILE_TYPE::str_to_enum(const std::string& _str)
+	{
+		// Call the no_abort overload then handle an error
+		auto _out = str_to_enum(_str, no_abort);
+		if (_out != FILE_TYPE::FILE_TYPE_E::BAD_VALUE)
+		{
+			// Return the associated enum
+			return _out;
+		}
+		else
+		{
 			// Handle bad string value
 #ifdef SAE_ENGINE_CORE_HARD_ERRORS
 			abort();	// abort if using hard errors
 #else
-			return FILE_TYPE::FILE_TYPE_E::BAD_VALUE; // return BAD_VALUE otherwise
+			return _out; // return BAD_VALUE otherwise
 #endif
 		};
 	};
+
 	std::optional<const char*> FILE_TYPE::enum_to_str(FILE_TYPE_E _e) // if the filetype is BAD_VALUE, this is a hard error.
 	{
 		// Check that the FILE_TYPE_E value is valid
@@ -63,7 +78,6 @@ namespace sae::engine::core
 		};
 	};
 
-
 	std::optional<const char*> FILE_TYPE::to_cstring() const
 	{
 		return this->enum_to_str(this->type_);
@@ -78,6 +92,10 @@ namespace sae::engine::core
 	FILE_TYPE::FILE_TYPE(const std::string& _str) : 
 		type_{ FILE_TYPE::str_to_enum(_str) }
 	{};
+	FILE_TYPE::FILE_TYPE(const std::string& _str, no_abort_t) : 
+		type_{ str_to_enum(_str, no_abort) }
+	{};
+
 	FILE_TYPE& FILE_TYPE::operator=(const std::string& _str)
 	{
 		this->type_ = FILE_TYPE::str_to_enum(_str);
