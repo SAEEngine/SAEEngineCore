@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../error/Error.h"
-#include "../logging/Logging.h"
+#include "../../error/Error.h"
+#include "../../logging/Logging.h"
 
 #include <vector>
 #include <optional>
@@ -64,7 +64,7 @@ namespace sae::engine::core
 		};
 
 		/**
-		 * @brief Returns the held FILE_TYPE_E value. This allows FileType to be used in switch statements. 
+		 * @brief Returns the held FILE_TYPE_E value. This allows FileType to be used in switch statements.
 		*/
 		constexpr operator FILE_TYPE_E() const noexcept
 		{
@@ -135,7 +135,7 @@ namespace sae::engine::core
 		friend inline std::ostream& operator<<(std::ostream& _ostr, const FILE_TYPE& _ft)
 		{
 			auto _out = _ft.to_cstring();
-			return (_out)? (_ostr << *_out) : _ostr;
+			return (_out) ? (_ostr << *_out) : _ostr;
 		};
 		friend inline std::istream& operator>>(std::istream& _istr, FILE_TYPE& _ft)
 		{
@@ -147,7 +147,7 @@ namespace sae::engine::core
 
 		constexpr FILE_TYPE() noexcept = default;
 
-		constexpr FILE_TYPE(FILE_TYPE_E _ft) noexcept : 
+		constexpr FILE_TYPE(FILE_TYPE_E _ft) noexcept :
 			type_{ _ft }
 		{};
 		FILE_TYPE& operator=(FILE_TYPE_E _ft) noexcept;

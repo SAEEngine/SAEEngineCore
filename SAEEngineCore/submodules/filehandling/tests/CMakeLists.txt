@@ -1,6 +1,19 @@
-if (BUILD_TESTING)
-	add_executable(SAEEngineCore_FileHandling_FILE_TYPE_Test "FILE_TYPE_test.cpp")
-	target_link_libraries(SAEEngineCore_FileHandling_FILE_TYPE_Test PRIVATE SAEEngineCore)
-	target_include_directories(SAEEngineCore_FileHandling_FILE_TYPE_Test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../")
-	add_test("SAEEngineCore_FileHandling_FILE_TYPE_Test" SAEEngineCore_FileHandling_FILE_TYPE_Test)
-endif()
+###
+###  Add any test directories to the set command below following the standard "build_test" test
+###
+
+set(test_directories "build_test" "type_test")
+
+
+###
+###	End of configuration section
+###
+
+### SUPER TEMPORARY
+add_subdirectory("build_test")
+
+# Add the test directories
+#foreach(file IN ${test_directories})
+#	add_subdirectory("${file}")
+#endforeach()
+

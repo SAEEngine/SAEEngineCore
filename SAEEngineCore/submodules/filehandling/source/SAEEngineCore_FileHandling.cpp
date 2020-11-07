@@ -1,4 +1,4 @@
-#include "FileHandling.h"
+#include "SAEEngineCore_FileHandling.h"
 
 #include <fstream>
 #include <unordered_map>
@@ -89,10 +89,10 @@ namespace sae::engine::core
 		return *this;
 	};
 
-	FILE_TYPE::FILE_TYPE(const std::string& _str) : 
+	FILE_TYPE::FILE_TYPE(const std::string& _str) :
 		type_{ FILE_TYPE::str_to_enum(_str) }
 	{};
-	FILE_TYPE::FILE_TYPE(const std::string& _str, no_abort_t) : 
+	FILE_TYPE::FILE_TYPE(const std::string& _str, no_abort_t) :
 		type_{ str_to_enum(_str, no_abort) }
 	{};
 
@@ -107,9 +107,9 @@ namespace sae::engine::core
 
 namespace sae::engine::core
 {
-	
 
-	std::optional<std::string> OpenFile(std::string filename) 
+
+	std::optional<std::string> OpenFile(std::string filename)
 	{
 
 		std::ifstream file(filename);		// good job using an ifstream as thats all that is needed
@@ -124,13 +124,12 @@ namespace sae::engine::core
 			file.close();
 
 		}
-			// Id recommend against returning an error as a string as string comparisons are slow
-			// Consider returning a std::optional<T> where T is your data storage type ✔
+		// Id recommend against returning an error as a string as string comparisons are slow
+		// Consider returning a std::optional<T> where T is your data storage type
 		return std::nullopt;
 
 		// Go look at the documentation for fstreams and see how error checking and handling is preformed.
 		//		https://en.cppreference.com/w/cpp/io/basic_fstream 
-		// ✔
 
 
 	}
@@ -144,7 +143,7 @@ namespace sae::engine::core
 	void FileIO::saveTextInFile(std::string data, std::string filename)
 	{
 		std::fstream s(filename);
-		if (!s.is_open)
+		if (!s.is_open())
 		{
 			core::lout << "file: " << filename << " could not be found\n";
 			return;

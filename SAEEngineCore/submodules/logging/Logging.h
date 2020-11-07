@@ -1,6 +1,6 @@
 #pragma once
 
-#include "SAEEngineCoreConfig.h"
+#include <SAEEngineCoreConfig.h>
 
 #include <ostream>
 
