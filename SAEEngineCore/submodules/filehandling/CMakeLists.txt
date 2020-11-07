@@ -56,6 +56,14 @@ add_library(${PROJECT_NAME} STATIC "${src_files}")
 ## Add the source directories
 target_include_directories(${PROJECT_NAME} PUBLIC "include" PRIVATE "config" "${source_dirs}")
 
+## Add the module version to the compile definitions 
+add_definitions(
+	-D${PROJECT_NAME}_SOURCE_ROOT="${CMAKE_CURRENT_LIST_DIR}"
+	-D${PROJECT_NAME}_VERSION_MAJOR="${PROJECT_VERSION_MAJOR}"
+	-D${PROJECT_NAME}_VERSION_MAJOR="${PROJECT_VERSION_MINOR}"
+	-D${PROJECT_NAME}_VERSION_PATCH="${PROJECT_VERSION_PATCH}"
+)
+
 ## Link to libraries specified
 target_link_libraries(${PROJECT_NAME} PUBLIC ${link_to_libs_public} PRIVATE ${link_to_libs_private})
 

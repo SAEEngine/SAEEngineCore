@@ -19,7 +19,7 @@ constexpr static inline int GOOD_TEST = 0;
 
 namespace eng = sae::engine::core;
 
-int main()
+int main(int _argCount, char* _args[], char* _envp[])
 {
 
 	eng::lout << "test\n";
