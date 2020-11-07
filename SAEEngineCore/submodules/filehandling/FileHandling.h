@@ -160,7 +160,16 @@ namespace sae::engine::core
 	constexpr static inline int SOME_VALUE_ALIAS = 0;
 
 
+	class FileIO
+	{
+	public:
+		FileIO(const char* _path);
 
+		void saveTextInFile(std::string data, std::string filename);
+		void createFile(std::string filename);
+	private:
+		const char* path;
+	};
 
 
 	std::optional<std::string> OpenFile(std::string filename);

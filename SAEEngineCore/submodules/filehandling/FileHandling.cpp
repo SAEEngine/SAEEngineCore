@@ -131,6 +131,31 @@ namespace sae::engine::core
 		// Go look at the documentation for fstreams and see how error checking and handling is preformed.
 		//		https://en.cppreference.com/w/cpp/io/basic_fstream 
 		// ✔
+
+
+	}
+
+	FileIO::FileIO(const char* _path)
+		:path(_path)
+	{
+
+	}
+
+	void FileIO::saveTextInFile(std::string data, std::string filename)
+	{
+		std::fstream s(filename);
+		if (!s.is_open)
+		{
+			core::lout << "file: " << filename << " could not be found\n";
+			return;
+		}
+		s << data;
+	}
+
+	void FileIO::createFile(std::string filename)
+	{
+		std::fstream s(filename);
+		s.open(filename);
 	}
 
 }
