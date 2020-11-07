@@ -8,4 +8,5 @@ target_include_directories(SAEEngineCore PUBLIC "include" PRIVATE "source")
 target_link_libraries(SAEEngineCore PUBLIC SAEEngineCore_Config PRIVATE glfw glad glm)
 
 add_subdirectory("submodules")
+add_subdirectory("examples")
 add_subdirectory("tests")
