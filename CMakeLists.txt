@@ -8,10 +8,12 @@ option(SAE_ENGINE_CORE_HARD_ERRORS "enables hard aborts when an error is found" 
 option(SAE_ENGINE_CORE_INSTALL "allows SAE_ENGINE_CORE to generate install files" ON)
 
 project ("SAEEngineCore" VERSION 0.0.1)
+include(CTest)
 
 add_definitions(-DPROJECT_ROOT="${CMAKE_CURRENT_LIST_DIR}")
 
-include(CTest)
+set(SAE_ENGINE_CPP_VERSION 17)
+
 
 configure_file("SAEEngineCoreConfig.h.in" "${CMAKE_CURRENT_SOURCE_DIR}/config/SAEEngineCoreConfig.h")
 
