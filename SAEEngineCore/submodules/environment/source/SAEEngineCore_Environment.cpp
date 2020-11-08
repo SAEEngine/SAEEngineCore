@@ -1,7 +1,5 @@
 #include "SAEEngineCore_Environment.h"
 
-#include <SAEEngineCore_Config.h>
-
 #include <functional>
 #include <cassert>
 

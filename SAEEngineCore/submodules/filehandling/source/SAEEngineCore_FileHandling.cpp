@@ -50,12 +50,7 @@ namespace sae::engine::core
 		}
 		else
 		{
-			// Handle bad string value
-#ifdef SAE_ENGINE_CORE_HARD_ERRORS
-			abort();	// abort if using hard errors
-#else
 			return _out; // return BAD_VALUE otherwise
-#endif
 		};
 	};
 
@@ -69,9 +64,7 @@ namespace sae::engine::core
 		}
 		else
 		{
-#ifdef SAE_ENGINE_CORE_HARD_ERRORS
-			abort();	// abort if using hard errors
-#elif defined(SAE_ENGINE_CORE_USE_EXCEPTIONS)
+#ifdef SAE_ENGINE_CORE_USE_EXCPETIONS
 			throw std::invalid_argument{ "Cannot converted FILE_TYPE::BAD_VALUE to a file extension string" };	// throw exception if they are enabled
 #endif
 			return std::nullopt; // return nullopt otherwise

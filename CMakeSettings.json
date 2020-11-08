@@ -25,6 +25,11 @@
           "name": "USE_MSVC_RUNTIME_LIBRARY_DLL",
           "value": "False",
           "type": "BOOL"
+        },
+        {
+          "name": "SAE_ENGINE_CORE_USE_EXCEPTIONS",
+          "value": "True",
+          "type": "BOOL"
         }
       ]
     }
