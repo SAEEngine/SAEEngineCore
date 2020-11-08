@@ -1,0 +1,56 @@
+Style guide!
+
+Rules:
+
+All code written within a submodule header must be in the namespace sae::engine::core.
+
+Function parameters names should be prefixed with an underscore. IE.
+	Example:
+
+	void foo(int _a, int _b);
+
+
+Variables declared within a function body should be prefixed with an underscore. 
+	Example:
+	
+	void foo(int _a, int _b)
+	{
+		int _out = _a + _b;
+		return _out;
+	};
+
+
+Class/Struct member variable names should be suffixed with an underscore unless it is a POD type.
+	You can check that if a type is a POD type by typing the following line.
+		static_assert(std::is_pod<T>::value, "not POD");
+	
+	Replace 'T' with the type you are checking. The variable  
+	
+
+Class/Struct member variable names should be all lowercase and spaced using underscores.
+	Examples:
+	
+	std::filesystem::path image_path_;
+	std::string image_name_;
+	
+	
+Private and protected class member functions should be all lowercased and spaced with underscores.
+	Examples:
+	
+		std::optional<const char*> to_cstring() const;	
+		FILE_TYPE_E str_to_enum(const std::string& _str);
+	
+	
+
+	
+
+
+
+
+
+
+
+
+
+
+
