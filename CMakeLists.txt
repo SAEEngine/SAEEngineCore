@@ -9,14 +9,13 @@ option(SAE_ENGINE_CORE_USE_EXCEPTIONS "enabled use of exceptions" ON)
 option(SAE_ENGINE_CORE_HARD_ERRORS "enables hard aborts when an error is found" ON)
 option(SAE_ENGINE_CORE_INSTALL "allows SAE_ENGINE_CORE to generate install files" ON)
 
-project ("SAEEngineCore" VERSION 0.0.1)
+project ("SAEEngineCore" LANGUAGES CXX C VERSION 0.0.1)
 include(CTest)
 
-add_definitions(-DPROJECT_ROOT="${CMAKE_CURRENT_LIST_DIR}")
-configure_file("SAEEngineCoreConfig.h.in" "${CMAKE_CURRENT_SOURCE_DIR}/config/SAEEngineCoreConfig.h")
+configure_file("${CMAKE_CURRENT_LIST_DIR}/config/${PROJECT_NAME}_Config.h.in" "${CMAKE_CURRENT_LIST_DIR}/config/${PROJECT_NAME}_Config.h")
 
-add_library(SAEEngineCore_Config INTERFACE)
-target_include_directories(SAEEngineCore_Config INTERFACE "config")
+add_library(${PROJECT_NAME}_Config INTERFACE)
+target_include_directories(${PROJECT_NAME}_Config INTERFACE "config")
 
 add_subdirectory("lib")
 add_subdirectory("SAEEngineCore")

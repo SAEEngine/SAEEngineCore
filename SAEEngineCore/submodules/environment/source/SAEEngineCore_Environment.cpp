@@ -1,6 +1,6 @@
-#include "../include/Environment.h"
+#include "SAEEngineCore_Environment.h"
 
-#include "SAEEngineCoreConfig.h"
+#include <SAEEngineCore_Config.h>
 
 #include <GLFW/glfw3.h>
 
