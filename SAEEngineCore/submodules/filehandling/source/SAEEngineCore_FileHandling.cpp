@@ -127,27 +127,27 @@ namespace sae::engine::core
 
 	}
 
-	FileIO::FileIO(const char* _path)
-		:path(_path)
+	FileIO::FileIO(const char* _path) :
+		path_(_path)
 	{
 
 	}
 
-	void FileIO::saveTextInFile(std::string data, std::string filename)
+	void FileIO::save_text_in_file(std::string _data, std::string _filename)
 	{
-		std::fstream s(filename);
+		std::fstream s(_filename);
 		if (!s.is_open())
 		{
-			core::lout << "file: " << filename << " could not be found\n";
+			core::lout << "file: " << _filename << " could not be found\n";
 			return;
 		}
-		s << data;
+		s << _data;
 	}
 
-	void FileIO::createFile(std::string filename)
+	void FileIO::create_file(std::string _filename)
 	{
-		std::fstream s(filename);
-		s.open(filename);
+		std::fstream s(_filename);
+		s.open(_filename);
 	}
 
 }
