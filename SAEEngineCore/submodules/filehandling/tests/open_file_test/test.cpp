@@ -22,7 +22,7 @@ namespace eng = sae::engine::core;
 int main(int argc, char* argv[], char* envp[])
 {
 
-	auto data = eng::OpenFile(argv[1]);
+	auto data = eng::OpenFile("main.txt");
 
 	if (data)
 	{
