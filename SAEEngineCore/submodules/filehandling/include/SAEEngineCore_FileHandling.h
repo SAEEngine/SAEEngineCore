@@ -171,6 +171,6 @@ namespace sae::engine::core
 	};
 
 
-	std::optional<std::string> OpenFile(std::string filename);
+	std::optional<std::vector<unsigned char>> OpenFile(std::string filename);
 
 }

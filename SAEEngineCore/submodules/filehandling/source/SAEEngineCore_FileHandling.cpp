@@ -109,19 +109,25 @@ namespace sae::engine::core
 {
 
 
-	std::optional<std::string> OpenFile(std::string filename)
+	std::optional<std::vector<unsigned char>> OpenFile(std::string _filename)
 	{
 
-		std::ifstream file(filename);		// good job using an ifstream as thats all that is needed
+		std::ifstream _file(_filename);		// good job using an ifstream as thats all that is needed
 
-		if (file)
+		if (_file.is_open())
 		{
+			
+			std::vector<unsigned char> _out {};
+			unsigned char _readbuffer[512] {};
+			while(!_file.eof())
+			{
 
-			std::string data;		// consider using a std::vector<char> for the data storage as strings are not ment to store information
-			file >> data;
 
-			return data;		// Consider creating a type for storing a loaded file's data
-			file.close();
+				_file.get((char*)_readbuffer,sizeof(_readbuffer));
+				_out.insert(_out.end(), _readbuffer, _readbuffer + _file.gcount());
+
+
+			}
 
 		}
 		// Id recommend against returning an error as a string as string comparisons are slow
