@@ -24,7 +24,7 @@ jobs:
 
       # Installs clang format
       - name: Install Clang Format
-        run: sudo apt install clang-format-9.0
+        run: sudo apt install clang-format
         shell: bash
 
       # This will run clang format and potentially clint
