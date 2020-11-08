@@ -164,10 +164,10 @@ namespace sae::engine::core
 	public:
 		FileIO(const char* _path);
 
-		void saveTextInFile(std::string data, std::string filename);
-		void createFile(std::string filename);
+		void save_text_in_file(std::string _data, std::string _filename);
+		void create_file(std::string _filename);
 	private:
-		const char* path;
+		const char* path_;
 	};
 
 

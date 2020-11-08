@@ -6,10 +6,4 @@
 namespace sae::engine
 {
 
-	void foo()
-	{
-
-		
-
-	};
 }

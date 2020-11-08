@@ -1,9 +1,5 @@
 #include "SAEEngineCore_Environment.h"
 
-#include <SAEEngineCore_Config.h>
-
-#include <GLFW/glfw3.h>
-
 #include <functional>
 #include <cassert>
 

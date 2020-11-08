@@ -50,12 +50,7 @@ namespace sae::engine::core
 		}
 		else
 		{
-			// Handle bad string value
-#ifdef SAE_ENGINE_CORE_HARD_ERRORS
-			abort();	// abort if using hard errors
-#else
 			return _out; // return BAD_VALUE otherwise
-#endif
 		};
 	};
 
@@ -69,9 +64,7 @@ namespace sae::engine::core
 		}
 		else
 		{
-#ifdef SAE_ENGINE_CORE_HARD_ERRORS
-			abort();	// abort if using hard errors
-#elif defined(SAE_ENGINE_CORE_USE_EXCEPTIONS)
+#ifdef SAE_ENGINE_CORE_USE_EXCPETIONS
 			throw std::invalid_argument{ "Cannot converted FILE_TYPE::BAD_VALUE to a file extension string" };	// throw exception if they are enabled
 #endif
 			return std::nullopt; // return nullopt otherwise
@@ -140,27 +133,27 @@ namespace sae::engine::core
 
 	}
 
-	FileIO::FileIO(const char* _path)
-		:path(_path)
+	FileIO::FileIO(const char* _path) :
+		path_(_path)
 	{
 
 	}
 
-	void FileIO::saveTextInFile(std::string data, std::string filename)
+	void FileIO::save_text_in_file(std::string _data, std::string _filename)
 	{
-		std::fstream s(filename);
+		std::fstream s(_filename);
 		if (!s.is_open())
 		{
-			core::lout << "file: " << filename << " could not be found\n";
+			core::lout << "file: " << _filename << " could not be found\n";
 			return;
 		}
-		s << data;
+		s << _data;
 	}
 
-	void FileIO::createFile(std::string filename)
+	void FileIO::create_file(std::string _filename)
 	{
-		std::fstream s(filename);
-		s.open(filename);
+		std::fstream s(_filename);
+		s.open(_filename);
 	}
 
 }

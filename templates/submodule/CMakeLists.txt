@@ -50,8 +50,8 @@ set(link_libs_public
 ### Add libary targets to link to below, these will be private
 ### Example:
 ###
-###		set(link_libs_public
-###			SAEEngineCore_Loggin
+###		set(link_libs_private
+###			SAEEngineCore_Logging
 ###			glfw
 ###		)
 ###

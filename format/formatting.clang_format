@@ -1,0 +1,29 @@
+---
+IndentWidth: 4
+---
+# Custom formatting configuration. Call it cline format or something.
+
+Language: Cpp
+
+DerivePointerAlignment: false
+PointerAlignment: Left
+
+AlignAfterOpenBracket: Align
+AlignConsecutiveMacros: true
+AlignEscapedNewlines: true
+AlignOperands: OAS_Align
+AlignTrailingComments: true
+AllowShortBlocksOnASingleLine: true
+AllowShortEnumsOnASingleLine: false
+
+BreakBeforeBraces: BS_Allman
+BreakConstructorInitializers: BCIS_AfterColon
+BreakInheritanceList: BILS_AfterColon
+
+ColumnLimit: 150
+CompactNamespaces: false
+
+IndentWidth: 4
+
+
+---

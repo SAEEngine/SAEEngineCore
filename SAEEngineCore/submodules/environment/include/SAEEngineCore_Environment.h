@@ -1,6 +1,7 @@
-#pragma once
+#ifndef SAE_ENGINE_CORE_ENVIRONMENT_H
+#define SAE_ENGINE_CORE_ENVIRONMENT_H
 
-struct GLFWwindow;
+#include <GLFW/glfw3.h>
 
 #include <memory>
 
@@ -180,3 +181,5 @@ namespace sae::engine::core
 	};
 
 }
+
+#endif
