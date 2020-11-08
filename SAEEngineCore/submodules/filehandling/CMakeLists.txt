@@ -44,6 +44,7 @@ set(source_dirs
 ###
 set(link_libs_public 
 	SAEEngineCore_Config
+	SAEEngineCore_Logging
 )
 
 ### Add libary targets to link to below, these will be private
