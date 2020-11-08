@@ -7,9 +7,9 @@ cmake_minimum_required (VERSION 3.8)
 ### I added names to the fields below to make it easier to use
 ###
 project(  
-	SAEEngineCore_FileHandling
-	VERSION 0.0.1
-	DESCRIPTION "File Handling submodule of SAEEngineCore"
+	project_name_goes_here
+	VERSION version_goes_here
+	DESCRIPTION description_goes_here
 	HOMEPAGE_URL "https://github.com/SAEEngine/SAEEngineCore"
 )
 
@@ -44,7 +44,6 @@ set(source_dirs
 ###
 set(link_libs_public 
 	SAEEngineCore_Config
-	SAEEngineCore_Logging
 )
 
 ### Add libary targets to link to below, these will be private
@@ -78,7 +77,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC "include" PRIVATE "${source_di
 target_link_libraries(${PROJECT_NAME} PUBLIC ${link_libs_public} PRIVATE ${link_libs_private})
 
 ## Set c++ version
-set_target_properties(${PROJECT_NAME} PROPERTIES CXX_STANDARD ${SAE_ENGINE_CPP_STANDARD} CXX_STANDARD_REQUIRED True)
+target_compile_options(${PROJECT_NAME} PRIVATE ${SAE_ENGINE_CPP_STANDARD})
 
 ## Add the module root path to the compile definitions 
 target_compile_definitions(${PROJECT_NAME}

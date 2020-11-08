@@ -1,8 +1,7 @@
 ﻿#include "SAEEngineCore.h"
 
 #include "Texture.h"
-#include "FileHandling.h"
-
+#include <SAEEngineCore_FileHandling.h>
 
 namespace sae::engine
 {
@@ -10,7 +9,7 @@ namespace sae::engine
 	void foo()
 	{
 
-		core::OpenFile("main.txt");
+		
 
 	};
 }

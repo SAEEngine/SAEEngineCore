@@ -1,13 +1,14 @@
 #pragma once
 
-#include "../logging/Logging.h"
+#include "../../error/Error.h"
+#include "../../logging/Logging.h"
 
 #include <vector>
 #include <optional>
 #include <filesystem>
 #include <string>
-
 #include <istream>
+#include <variant>
 
 #ifdef SAE_ENGINE_CORE_USE_EXCEPTIONS
 #include <stdexcept>
@@ -29,7 +30,6 @@ namespace sae::engine::core
 		{
 			F_TXT = 0,
 			F_PNG,
-			F_XML,
 			BAD_VALUE,
 			FILE_TYPE_E_MAX_VALUE = BAD_VALUE
 		};
@@ -38,12 +38,16 @@ namespace sae::engine::core
 
 		// This should be set to whatever FILE_TYPE_E::BAD_VALUE is equal to just not directly. The static asserts below will help prevent
 		// desync between this value and the true value of FILE_TYPE_E::BAD_VALUE
-		constexpr static inline size_t ENUM_MAX_VALUE = 3;
+		constexpr static inline size_t ENUM_MAX_VALUE = 2;
 		static_assert(ENUM_MAX_VALUE == FILE_TYPE_E::FILE_TYPE_E_MAX_VALUE, "FILE_TYPE::FILE_TYPE_E::FILE_TYPE_E_MAX_VALUE doesn't match FILE_TYPE::ENUM_MAX_VALUE");
 		static_assert(FILE_TYPE_E::BAD_VALUE == FILE_TYPE_E::FILE_TYPE_E_MAX_VALUE, "FILE_TYPE::FILE_TYPE_E::BAD_VALUE doesn't match FILE_TYPE::FILE_TYPE_E::FILE_TYPE_E_MAX_VALUE");
 
 		// Internal string to enum conversion function
 		static FILE_TYPE_E str_to_enum(const std::string& _str);
+
+		// Overload of str_to_enum that disabling abort on bad value
+		static FILE_TYPE_E str_to_enum(const std::string& _str, no_abort_t);
+
 
 		// Internal enum to string conversion function
 		static std::optional<const char*> enum_to_str(FILE_TYPE_E _e);
@@ -60,7 +64,7 @@ namespace sae::engine::core
 		};
 
 		/**
-		 * @brief Returns the held FILE_TYPE_E value. This allows FileType to be used in switch statements. 
+		 * @brief Returns the held FILE_TYPE_E value. This allows FileType to be used in switch statements.
 		*/
 		constexpr operator FILE_TYPE_E() const noexcept
 		{
@@ -112,9 +116,14 @@ namespace sae::engine::core
 		};
 
 		/**
-		 * @brief Converts the provided string to a FILE_TYPE_E value. Will set to BAD_VALUE on invalid string.
+		 * @brief Converts the provided string to a FILE_TYPE_E value. Will abort on bad string if SAE_ENGINE_CORE_HARD_ERRORS is defined.
 		*/
 		FILE_TYPE(const std::string& _str);
+
+		/**
+		 * @brief Converts the provided string to a FILE_TYPE_E value. Will set to BAD_VALUE on invalid string.
+		*/
+		FILE_TYPE(const std::string& _str, no_abort_t);
 
 		/**
 		 * @brief Converts the provided string to a FILE_TYPE_E value. Will set to BAD_VALUE on invalid string.
@@ -126,7 +135,7 @@ namespace sae::engine::core
 		friend inline std::ostream& operator<<(std::ostream& _ostr, const FILE_TYPE& _ft)
 		{
 			auto _out = _ft.to_cstring();
-			return (_out)? (_ostr << *_out) : _ostr;
+			return (_out) ? (_ostr << *_out) : _ostr;
 		};
 		friend inline std::istream& operator>>(std::istream& _istr, FILE_TYPE& _ft)
 		{
@@ -138,7 +147,7 @@ namespace sae::engine::core
 
 		constexpr FILE_TYPE() noexcept = default;
 
-		constexpr FILE_TYPE(FILE_TYPE_E _ft) noexcept : 
+		constexpr FILE_TYPE(FILE_TYPE_E _ft) noexcept :
 			type_{ _ft }
 		{};
 		FILE_TYPE& operator=(FILE_TYPE_E _ft) noexcept;
@@ -147,6 +156,20 @@ namespace sae::engine::core
 		FILE_TYPE_E type_ = FILE_TYPE_E::BAD_VALUE;
 
 	};
+
+
+
+	class FileIO
+	{
+	public:
+		FileIO(const char* _path);
+
+		void saveTextInFile(std::string data, std::string filename);
+		void createFile(std::string filename);
+	private:
+		const char* path;
+	};
+
 
 	std::optional<std::string> OpenFile(std::string filename);
 

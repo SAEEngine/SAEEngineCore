@@ -3,7 +3,5 @@
 int main()
 {
 
-	sae::engine::foo();
 	return 0;
-
 };
