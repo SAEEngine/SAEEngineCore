@@ -116,11 +116,12 @@ namespace sae::engine::core
 			{
 
 
-				_file.get((char*)_readbuffer,sizeof(_readbuffer));
+				_file.read((char*)_readbuffer,sizeof(_readbuffer));
 				_out.insert(_out.end(), _readbuffer, _readbuffer + _file.gcount());
 
 
 			}
+			return _out;
 
 		}
 		// Id recommend against returning an error as a string as string comparisons are slow
