@@ -8,6 +8,7 @@ cmake_minimum_required (VERSION 3.8)
 ###
 project(  
 	project_name_goes_here
+	LANGUAGES CXX
 	VERSION version_goes_here
 	DESCRIPTION description_goes_here
 	HOMEPAGE_URL "https://github.com/SAEEngine/SAEEngineCore"
@@ -49,8 +50,8 @@ set(link_libs_public
 ### Add libary targets to link to below, these will be private
 ### Example:
 ###
-###		set(link_libs_public
-###			SAEEngineCore_Loggin
+###		set(link_libs_private
+###			SAEEngineCore_Logging
 ###			glfw
 ###		)
 ###
@@ -77,7 +78,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC "include" PRIVATE "${source_di
 target_link_libraries(${PROJECT_NAME} PUBLIC ${link_libs_public} PRIVATE ${link_libs_private})
 
 ## Set c++ version
-target_compile_options(${PROJECT_NAME} PRIVATE ${SAE_ENGINE_CPP_STANDARD})
+set_target_properties(${PROJECT_NAME} PROPERTIES CXX_STANDARD ${SAE_ENGINE_CPP_STANDARD} CXX_STANDARD_REQUIRED True)
 
 ## Add the module root path to the compile definitions 
 target_compile_definitions(${PROJECT_NAME}

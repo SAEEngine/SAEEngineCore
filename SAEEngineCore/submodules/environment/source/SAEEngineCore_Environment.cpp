@@ -1,8 +1,4 @@
-#include "../include/Environment.h"
-
-#include "SAEEngineCoreConfig.h"
-
-#include <GLFW/glfw3.h>
+#include "SAEEngineCore_Environment.h"
 
 #include <functional>
 #include <cassert>

@@ -2,7 +2,7 @@
 ###  Add any test directories to the set command below following the standard "build_test" test
 ###
 
-set(test_directories "build_test" "type_test")
+set(test_directories "build_test" "type_test" "open_file_test")
 
 
 ###
@@ -11,6 +11,7 @@ set(test_directories "build_test" "type_test")
 
 ### SUPER TEMPORARY
 add_subdirectory("build_test")
+add_subdirectory("open_file_test")
 
 # Add the test directories
 #foreach(file IN ${test_directories})

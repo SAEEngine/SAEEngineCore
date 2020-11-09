@@ -3,4 +3,6 @@
 ###
 
 add_subdirectory("build_test")
+add_subdirectory("serial_test")
+
 

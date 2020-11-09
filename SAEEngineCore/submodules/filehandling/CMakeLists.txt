@@ -8,6 +8,7 @@ cmake_minimum_required (VERSION 3.8)
 ###
 project(  
 	SAEEngineCore_FileHandling
+	LANGUAGES CXX
 	VERSION 0.0.1
 	DESCRIPTION "File Handling submodule of SAEEngineCore"
 	HOMEPAGE_URL "https://github.com/SAEEngine/SAEEngineCore"

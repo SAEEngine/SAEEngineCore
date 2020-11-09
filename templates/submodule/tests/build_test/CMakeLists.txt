@@ -10,7 +10,7 @@
 ###		this would produce a new test executable named test linked to library SAEEngineCore
 macro(define_test test_exe, for_library)
 	add_executable(${ARGV0} "test.cpp")
-	target_link_libraries(${ARGV0} PRIVATE ${ARGV2})
+	target_link_libraries(${ARGV0} PRIVATE ${ARGV1})
 endmacro(define_test)
 
 ### Creates an instance of the test 'test_exe' named 'test_name'. Command line arguements can be passed by adding them

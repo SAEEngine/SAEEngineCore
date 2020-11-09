@@ -33,3 +33,6 @@ endmacro(new_test_instance)
 ### new_test_instance("window_open_test_fullscreen" WindowOpenTest "fullscreen")
 ### new_test_instance("window_open_test_windowed" WindowOpenTest "windowed" 600 400)
 ###
+
+DEFINE_TEST(SAEEngineCore_Environment_BuildTest SAEEngineCore_Environment)
+NEW_TEST_INSTANCE("SAEEngineCore_Environment_BuildTest" SAEEngineCore_Environment_BuildTest)
