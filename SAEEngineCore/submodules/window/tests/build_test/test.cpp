@@ -14,21 +14,17 @@ constexpr static inline int GOOD_TEST = 0;
 
 // Include the headers you need for testing here
 
-#include <SAEEngineCore_FileHandling.h>
-#include <vector>
-namespace eng = sae::engine::core;
+
+
 
 
 int main(int argc, char* argv[], char* envp[])
 {
 
-	auto data = eng::OpenFile("main.txt");
 
-	if (data)
-	{
-		for (auto i = data->begin(); i != data->end(); ++i)
-    		eng::lout << (char)*i << ' ';
-	}
+
+
+
 
 	return GOOD_TEST;
 };

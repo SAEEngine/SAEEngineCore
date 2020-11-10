@@ -57,40 +57,46 @@ namespace sae::engine::core
 	};
 	
 
-
+	/**
+	 * @brief Wraps a GLFWwindow and owns its memory. Destroys window on destructor
+	*/
 	class Window
 	{
 	public:
 
 		using pointer = GLFWwindow*;
 
-		constexpr bool good() const noexcept { return this->ptr_ != nullptr; };
-		constexpr explicit operator bool() const noexcept { return this->good(); };
+		bool good() const noexcept { return this->ptr_ != nullptr; };
+		explicit operator bool() const noexcept { return this->good(); };
 
-		constexpr pointer get() const noexcept { return this->ptr_; };
+		pointer get() const noexcept { return this->ptr_; };
 		void release() noexcept { this->ptr_ = nullptr; };
 
-		friend inline constexpr bool operator==(const Window& _lhs, pointer _rhs) noexcept
+		friend inline bool operator==(const Window& _lhs, pointer _rhs) noexcept
 		{
 			return (_lhs.get() == _rhs);
 		};
-		friend inline constexpr bool operator!=(const Window& _lhs, pointer _rhs) noexcept
+		friend inline bool operator!=(const Window& _lhs, pointer _rhs) noexcept
 		{
 			return (_lhs.get() != _rhs);
 		};
 
-		friend inline constexpr bool operator==(pointer _lhs, const Window& _rhs) noexcept
+		friend inline bool operator==(pointer _lhs, const Window& _rhs) noexcept
 		{
 			return (_lhs == _rhs.get());
 		};
-		friend inline constexpr bool operator!=(pointer _lhs, const Window& _rhs) noexcept
+		friend inline bool operator!=(pointer _lhs, const Window& _rhs) noexcept
 		{
 			return (_lhs != _rhs.get());
 		};
 
 		void destroy();
 
-		explicit constexpr Window(pointer _ptr) noexcept :
+		/**
+		 * @brief Creates a new window uses the user provided GLFWwindow*
+		 * @param _ptr GLFWwindow*
+		*/
+		explicit Window(pointer _ptr) noexcept :
 			ptr_{ _ptr }
 		{};
 
