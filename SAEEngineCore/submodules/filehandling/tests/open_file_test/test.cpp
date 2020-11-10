@@ -32,7 +32,7 @@ int main(int argc, char* argv[], char* envp[])
 	_path.append("main.txt");
 
 	std::string _checkagainst;
-	auto _data = eng::OpenFile(_path.native());
+	auto _data = eng::OpenFile(_path);
 	
 
 	if (_data)
