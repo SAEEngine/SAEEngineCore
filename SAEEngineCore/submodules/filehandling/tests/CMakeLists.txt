@@ -11,7 +11,6 @@ set(test_directories "build_test" "type_test" "open_file_test")
 
 ### SUPER TEMPORARY
 add_subdirectory("build_test")
-add_subdirectory("open_file_test")
 
 # Add the test directories
 #foreach(file IN ${test_directories})
