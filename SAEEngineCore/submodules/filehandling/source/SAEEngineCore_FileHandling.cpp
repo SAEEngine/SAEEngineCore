@@ -121,6 +121,7 @@ namespace sae::engine::core
 
 
 			}
+			return _out;
 
 		}
 		// Id recommend against returning an error as a string as string comparisons are slow
