@@ -12,7 +12,8 @@
 
 .vs
 .vscode
-
+build.sh
+buildlog
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
 

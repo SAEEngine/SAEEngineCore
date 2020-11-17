@@ -11,7 +11,7 @@
  * @brief Return this from main if the test was passsed.
 */
 constexpr static inline int GOOD_TEST = 0;
-
+constexpr static inline int BAD_TEST = 1;
 // Include the headers you need for testing here
 
 #include <SAEEngineCore_FileHandling.h>
@@ -19,14 +19,18 @@ constexpr static inline int GOOD_TEST = 0;
 
 namespace eng = sae::engine::core;
 
+int _testcount = 0;
+
 int main(int _argCount, char* _args[], char* _envp[])
 {
-
-	eng::lout << "test\n";
+	
 	
 
-
-
-
-	return GOOD_TEST;
+	if (_testcount == 2)
+	{
+	
+		return GOOD_TEST;
+	
+	}
+		
 };

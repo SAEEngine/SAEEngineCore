@@ -172,5 +172,5 @@ namespace sae::engine::core
 
 
 	std::optional<std::vector<unsigned char>> OpenFile(std::filesystem::path _filename);
-
+	std::optional<std::string> GetFileType(std::filesystem::path _filename);
 }

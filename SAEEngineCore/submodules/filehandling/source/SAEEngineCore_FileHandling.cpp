@@ -135,9 +135,22 @@ namespace sae::engine::core
 
 	}
 
-	std::optional<std::string> OpenFile(std::string _filename)
+	/**
+	 * @brief takes in a path and returns extension of that file
+	 * @brief returns an optional if the file extension was empty
+	 *
+	 * @param _filename 
+	 * @return std::optional<std::string> 
+	 */
+	std::optional<std::string> GetFileType(std::filesystem::path _filename)
 	{
 
+		if (_filename.extension() != "")
+		{
+				return _filename.extension();
+		}
+
+		 return std::nullopt;
 	}
 
 	FileIO::FileIO(const char* _path) :
