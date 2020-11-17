@@ -134,6 +134,11 @@ namespace sae::engine::core
 
 	}
 
+	std::optional<std::string> OpenFile(std::string _filename)
+	{
+
+	}
+
 	FileIO::FileIO(const char* _path) :
 		path_(_path)
 	{
