@@ -2,7 +2,7 @@
 
 #include <fstream>
 #include <unordered_map>
-
+#include <filesystem>
 #include <cassert>
 
 namespace sae::engine::core
@@ -101,11 +101,17 @@ namespace sae::engine::core
 namespace sae::engine::core
 {
 
-
-	std::optional<std::vector<unsigned char>> OpenFile(std::string _filename)
+	/**
+	 * @brief takes in a path and returns the data in that file
+	 * @brief returns an optional if there was an error opening the file
+	 * 
+	 * @param _filename 
+	 * @return std::optional<std::vector<unsigned char>> 
+	 */
+	std::optional<std::vector<unsigned char>> OpenFile(std::filesystem::path _filename)
 	{
 
-		std::ifstream _file(_filename);		// good job using an ifstream as thats all that is needed
+		std::ifstream _file(_filename.native());
 
 		if (_file.is_open())
 		{
@@ -124,13 +130,8 @@ namespace sae::engine::core
 			return _out;
 
 		}
-		// Id recommend against returning an error as a string as string comparisons are slow
-		// Consider returning a std::optional<T> where T is your data storage type
+
 		return std::nullopt;
-
-		// Go look at the documentation for fstreams and see how error checking and handling is preformed.
-		//		https://en.cppreference.com/w/cpp/io/basic_fstream 
-
 
 	}
 
