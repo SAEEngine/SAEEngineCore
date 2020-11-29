@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../../error/Error.h"
-#include "../../logging/Logging.h"
+#include <SAEEngineCore_Logging.h>
 
 #include <vector>
 #include <optional>

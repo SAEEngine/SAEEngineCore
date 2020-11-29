@@ -34,6 +34,5 @@ endmacro(new_test_instance)
 ### new_test_instance("window_open_test_windowed" WindowOpenTest "windowed" 600 400)
 ###
 
-DEFINE_TEST(SAEEngineCore_Object_BuildTest SAEEngineCore_Object)
-target_link_libraries(SAEEngineCore_Object_BuildTest PRIVATE SAEEngineCore_Environment SAEEngineCore_glObject)
-NEW_TEST_INSTANCE("SAEEngineCore_Object_BuildTest" SAEEngineCore_Object_BuildTest)
+define_test(SAEEngineCore_GLObject_BuildTest SAEEngineCore_glObject)
+new_test_instance("SAEEngineCore_GLObject_BuildTest" SAEEngineCore_GLObject_BuildTest)

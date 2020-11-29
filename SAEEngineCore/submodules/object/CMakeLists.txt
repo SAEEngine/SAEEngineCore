@@ -46,6 +46,7 @@ set(source_dirs
 set(link_libs_public 
 	SAEEngineCore_Config
 	SAEEngineCore_Environment
+	SAEEngineCore_Event
 	glm
 )
 
@@ -58,7 +59,8 @@ set(link_libs_public
 ###		)
 ###
 set(link_libs_private
-	
+	SAEEngineCore_Logging
+	SAEEngineCore_Input
 )
 
 ##

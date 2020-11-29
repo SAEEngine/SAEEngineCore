@@ -3,17 +3,22 @@
 #define SAE_ENGINE_CORE_OBJECT_H
 
 #include <SAEEngineCore_Environment.h>
+#include <SAEEngineCore_Event.h>
 
 #include <glm/gtc/matrix_transform.hpp>
+
+#include <SAELib_Either.h>
 
 #include <cstdint>
 #include <vector>
 #include <memory>
 #include <algorithm>
 #include <string>
+#include <variant>
 
 namespace sae::engine::core
 {
+
 	/**
 	 * @brief POD type for resprenting a point on the screen (given in pixels; origin is upper left of window)
 	*/
@@ -68,11 +73,87 @@ namespace sae::engine::core
 		UIRect& grow(pixels_t _dw, pixels_t _dh) noexcept;
 
 		/**
+		 * @brief Checks if a point on the screen intersects this rectangle
+		 * @param _p Point
+		 * @return true if intersecting, false if not
+		*/
+		constexpr bool intersects(ScreenPoint _p) const noexcept
+		{
+			return (this->a.x <= _p.x && _p.x < this->b.x && this->a.y <= _p.y && _p.y < this->b.y);
+		};
+
+		/**
 		 * @brief Creates a 4x4 matrix using the region as the inputs to glm::ortho
 		*/
 		glm::mat4 ortho() const noexcept;
 
 	};
+
+	/**
+	 * @brief Represents an R color with 8 bits for each color value (8 for the full color)
+	*/
+	union ColorR_8
+	{
+		struct
+		{
+			uint8_t r;
+		};
+		uint8_t col[1]{};
+	};
+
+	/**
+	 * @brief Represents an RGB color with 8 bits for each color value (24 for the full color)
+	*/
+	union ColorRGB_8
+	{
+		struct
+		{
+			uint8_t r;
+			uint8_t g;
+			uint8_t b;
+		};
+		uint8_t col[3]{};
+	};
+
+	/**
+	 * @brief Represents an RGBA color with 8 bits for each color value (32 for the full color)
+	*/
+	union ColorRGBA_8
+	{
+		struct
+		{
+			uint8_t r;
+			uint8_t g;
+			uint8_t b;
+			uint8_t a;
+		};
+		uint8_t col[4]{};
+	};
+
+
+	class Palette
+	{
+	public:
+		using color_type = ColorRGBA_8;
+		using value_type = std::variant<uint16_t, color_type>;
+
+		auto& at(size_t i) { return this->entries_.at(i); };
+		const auto& at(size_t i) const { return this->entries_.at(i); };
+
+		Palette() = default;
+		Palette(std::initializer_list<value_type> _iList) :
+			entries_{ _iList }
+		{};
+
+	private:
+		std::vector<value_type> entries_{};
+
+	};
+
+
+
+
+
 
 #if false
 	/**
@@ -104,10 +185,46 @@ namespace sae::engine::core
 #endif
 	
 
+	class GFXContext;
+
+	class GFXBase
+	{
+	public:
+		GFXContext* context() const noexcept;
+
+	protected:
+		virtual ~GFXBase() = default;
+
+	private:
+		void set_context(GFXContext* _context) noexcept;
+		friend GFXContext;
+
+		GFXContext* context_ = nullptr;
+
+	};
+
+	class UIGroup;
+
+	class GFXContext
+	{
+	public:
+		virtual void push_event(const Event& _ev) = 0;
+
+	protected:
+		friend UIGroup;
+
+		void add_to_context(GFXBase* _obj)
+		{
+			_obj->set_context(this);
+		};
+		virtual ~GFXContext() = default;
+
+	};
+
 	/**
 	 * @brief Base type for representing drawable UIObjects
 	*/
-	class UIObject
+	class UIObject : public GFXBase
 	{
 	public:
 
@@ -133,22 +250,46 @@ namespace sae::engine::core
 		*/
 		virtual void draw();
 
-		
-		virtual void handle_event() {};
+	private:
+		static inline Palette EMPTY_PALLETE{};
 
+	public:
+
+		/**
+		 * @brief Returns the palette used by the object
+		*/
+		virtual Palette& get_palette() const;
+		
+		/**
+		 * @brief Enumerator to better describe the return value from the handle_event() function
+		*/
+		enum HANDLE_EVENT_RETURN : bool
+		{
+			IGNORED = false,
+			HANDLED = true
+		};
+
+		/**
+		 * @brief Handles a standard event
+		 * @return IGNORED if the event was ignored, HANDLED if it was handled
+		*/
+		virtual HANDLE_EVENT_RETURN handle_event(const Event& _event);
 
 		UIObject(UIRect _r);
 		virtual ~UIObject() = default;
 
 	private:
+
+		GFXContext* context_ = nullptr;
 		UIRect bounds_{};
+		float_t z_ = 0.0f;
 
 	};
 
 	/**
 	 * @brief Base type for a group of UIObjects
 	*/
-	class UIGroup 
+	class UIGroup
 	{
 	private:
 		using value_type = std::shared_ptr<UIObject>;
@@ -166,19 +307,25 @@ namespace sae::engine::core
 		*/
 		const ContainerT& get_container() const noexcept;
 
+	protected:
+		void add_to_graphics_context(GFXContext* _context, GFXBase* _obj)
+		{
+			_context->add_to_context(_obj);
+		};
+
 	public:
 
 		/**
 		 * @brief Adds a child to the group
 		 * @param _obj Shared pointer to new child
 		*/
-		void insert(std::shared_ptr<UIObject> _obj);
+		virtual void insert(std::shared_ptr<UIObject> _obj);
 		
 		/**
 		 * @brief Removes a child from the group
 		 * @param _obj Pointer to the object
 		*/
-		void remove(UIObject* _obj);
+		virtual void remove(UIObject* _obj);
 		
 		/**
 		 * @brief Returns the number of children in the group
@@ -201,6 +348,7 @@ namespace sae::engine::core
 	};
 
 
+
 	class UIView : public UIObject, public UIGroup
 	{
 	public:
@@ -217,6 +365,18 @@ namespace sae::engine::core
 			};
 		}
 
+		void insert(std::shared_ptr<UIObject> _obj) override;
+
+		void remove(UIObject* _obj) override;
+
+
+
+		/**
+		 * @brief Passes the event down to children until one of them handles it
+		 * @param _ev Event to handle
+		 * @return IGNORED if the event was ignored, HANDLED if handled
+		*/
+		HANDLE_EVENT_RETURN handle_event(const Event& _ev) override;
 
 		UIView(UIRect _r) :
 			UIObject{ _r }
@@ -224,20 +384,150 @@ namespace sae::engine::core
 
 	};
 
-
-
-
-
-
-
-	class GFXWindow : public UIView, public Window
+	class UIButton : public UIView
 	{
+	private:
+		EventResponse on_mb1_;
+		EventResponse on_mb2_;
+
+		bool is_down_ = false;
+		int down_button_ = 0;
+
+		void handle_response(const EventResponse& _ev, const Event& _fromEvent);
+
+	protected:
+		HANDLE_EVENT_RETURN handle_mouse_event(const Event::evMouse& _evmouse);
+
+	public:
+
+		HANDLE_EVENT_RETURN handle_event(const Event& _event) override;
+
+		UIButton(UIRect _r, const EventResponse& _onMouse1, const EventResponse& _onMouse2);
+
+	};
+
+	class UIPushButton : public UIView
+	{
+	private:
+		static inline Palette DEFAULT_PALETTE
+		{ 
+			{ ColorRGBA_8{ 255, 255, 255, 255 } },	// resting state
+			{ ColorRGBA_8{ 255, 255, 255, 255 } },	// pushed state
+			{ ColorRGBA_8{ 255, 255, 255, 255 } }	// hovered state
+		};
+
+		enum BUTTON_STATE
+		{
+			RESTING,
+			PUSHED,
+			HOVERED
+		};
+
+		BUTTON_STATE state_ = BUTTON_STATE::RESTING;
+
+		EventResponse on_push_;
+		EventResponse on_release_;
+		EventResponse on_mouse_enter_;
+		EventResponse on_mouse_leave_;
+
+		bool is_hovered_ = true;
+
+		bool is_down_ = false;
+		int down_button_ = 0;
+
+		void handle_response(const EventResponse& _ev, const Event& _fromEvent);
+
+	protected:
+		HANDLE_EVENT_RETURN handle_mouse_event(const Event::evMouse& _evmouse);
+		HANDLE_EVENT_RETURN handle_cursor_event(const Event::evCursorMove& _event);
+
+
+
+	public:
+		Palette& get_palette() const override { return this->DEFAULT_PALETTE; };
+
+		HANDLE_EVENT_RETURN handle_event(const Event& _event) override;
+
+		UIPushButton(	UIRect _r, const EventResponse& _onPush, const EventResponse& _onRelease, 
+						const EventResponse& _onMouseEnter, const EventResponse& _onMouseLeave	);
+
+	};
+
+	class UIToggleButton : public UIView
+	{
+	public:
+
+
+	private:
+		static inline Palette DEFAULT_PALETTE
+		{
+			{ ColorRGBA_8{ 255, 255, 255, 255 } },	// resting-inactive state
+			{ ColorRGBA_8{ 255, 255, 255, 255 } },	// resting-active state
+			{ ColorRGBA_8{ 255, 255, 255, 255 } },	// pushed-inactive state
+			{ ColorRGBA_8{ 255, 255, 255, 255 } },	// pushed-active state
+			{ ColorRGBA_8{ 255, 255, 255, 255 } },	// hovered-active state
+			{ ColorRGBA_8{ 255, 255, 255, 255 } }	// hovered-inactive state
+		};
+
+		enum BUTTON_STATE
+		{
+			RESTING_INACTIVE,
+			RESTING_ACTIVE,
+			PUSHED_INACTIVE,
+			PUSHED_ACTIVE,
+			HOVERED_INACTIVE,
+			HOVERED_ACTIVE,
+		};
+
+		BUTTON_STATE state_ = BUTTON_STATE::RESTING_INACTIVE;
+
+		EventResponse on_push_;
+		EventResponse on_release_;
+		EventResponse on_mouse_enter_;
+		EventResponse on_mouse_leave_;
+
+		bool is_hovered_ = true;
+
+		bool is_down_ = false;
+		int down_button_ = 0;
+
+		void handle_response(const EventResponse& _ev, const Event& _fromEvent);
+
+	protected:
+		HANDLE_EVENT_RETURN handle_mouse_event(const Event::evMouse& _evmouse);
+		HANDLE_EVENT_RETURN handle_cursor_event(const Event::evCursorMove& _event);
+
+	public:
+
+		HANDLE_EVENT_RETURN handle_event(const Event& _event) override;
+
+		UIToggleButton(UIRect _r, const EventResponse& _onPush, const EventResponse& _onRelease,
+			const EventResponse& _onMouseEnter, const EventResponse& _onMouseLeave);
+
+	};
+	
+
+
+
+
+
+
+	class GFXWindow : public UIView, public Window, public GFXContext
+	{
+	private:
+		static void glfw_mouse_button_callback(GLFWwindow* _window, int _button, int _action, int _mods);
+		static void glfw_cursor_move_callback(GLFWwindow* _window, double _x, double _y);
+
 	public:
 
 		/**
 		 * @brief Draws the window's child objects and swaps the window buffers
 		*/
 		void draw() override;
+
+		HANDLE_EVENT_RETURN handle_event(const Event& _event) override;
+
+		void push_event(const Event& _event) override { this->handle_event(_event); };
 
 		/**
 		 * @brief Opens a new window of size (_width, _height) with title _title

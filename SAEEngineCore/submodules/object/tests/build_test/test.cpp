@@ -15,9 +15,8 @@ constexpr static inline int GOOD_TEST = 0;
 // Include the headers you need for testing here
 
 #include <SAEEngineCore_Object.h>
-
-#include <glad/glad.h>
 #include <SAEEngineCore_Environment.h>
+#include <SAEEngineCore_glObject.h>
 
 #include <chrono>
 #include <thread>
@@ -26,8 +25,11 @@ constexpr static inline int GOOD_TEST = 0;
 #include <string>
 #include <array>
 #include <iostream>
+#include <cmath>
 
 namespace eng = sae::engine::core;
+
+#pragma region NASTY_EXTRA_BITS
 
 const std::string VERTEX_SHADER = R"(
 #version 330 core
@@ -46,11 +48,13 @@ const std::string FRAGMENT_SHADER = R"(
 
 out vec3 color;
 
+uniform vec3 BoxColor;
 
 void main() 
 {
-	color = vec3(1.0, 1.0, 1.0);
+	color = BoxColor;
 };
+
 )";
 
 GLuint GenerateShader(const std::string& VertexShaderCode, const std::string& FragmentShaderCode) {
@@ -116,19 +120,79 @@ GLuint GenerateShader(const std::string& VertexShaderCode, const std::string& Fr
 	return ProgramID;
 }
 
+#pragma endregion NASTY_EXTRA_BITS
 
+constexpr eng::Event::evUser evBoxPress{ 1 };
+constexpr eng::Event::evUser evBoxRelease{ 2 };
+constexpr eng::Event::evUser evBoxMouseEnter{ 3 };
+constexpr eng::Event::evUser evBoxMouseLeave{ 4 };
 
-struct BoxTest : public eng::UIView
+struct BoxTest : public eng::UIPushButton
 {
 	void draw_self() override
 	{
+		eng::UBind _uvao{ &this->vao_ };
 
+		float_t _fvColor[3]{};
+		_fvColor[0] = (float_t)this->color_.r / 255.0f;
+		_fvColor[1] = (float_t)this->color_.g / 255.0f;
+		_fvColor[2] = (float_t)this->color_.b / 255.0f;
+
+		glUniform3fv(this->color_pos_, 1, _fvColor);
+
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, this->vbos_[1]);
+		glDrawElements(GL_TRIANGLES, this->indices_.size(), GL_UNSIGNED_SHORT, 0);
+		
+	};
+
+	HANDLE_EVENT_RETURN	handle_event(const eng::Event& _event) override
+	{
+		using EVENT = eng::Event::EVENT_TYPE;
+		auto _res = UIPushButton::handle_event(_event);
+		if (_res == IGNORED)
+		{
+			switch (_event.index())
+			{
+			case EVENT::USER_EVENT:
+				switch (_event.get<EVENT::USER_EVENT>().ev)
+				{
+				case evBoxPress.ev:
+					this->set_color(eng::ColorRGB_8{ 80, 20, 20 });
+					_res = HANDLED;
+					break;
+				case evBoxRelease.ev:
+					this->set_color(eng::ColorRGB_8{ 200, 60, 60 });
+					_res = HANDLED;
+					break;
+				case evBoxMouseEnter.ev:
+					this->set_color(eng::ColorRGB_8{ 200, 60, 60 });
+					_res = HANDLED;
+					break;
+				case evBoxMouseLeave.ev:
+					this->set_color(eng::ColorRGB_8{ 160, 20, 20 });
+					_res = HANDLED;
+					break;
+				default:
+					break;
+				};
+				break;
+			default:
+				break;
+			};
+		};
+		return _res;
+	};
+
+	void set_color(eng::ColorRGB_8 _col)
+	{
+		this->color_ = _col;
 	};
 
 
 
+
 	BoxTest(eng::UIRect _r) :
-		eng::UIView{ _r }
+		eng::UIPushButton{ _r, evBoxPress , evBoxRelease, evBoxMouseEnter, evBoxMouseLeave }
 	{
 		this->pos_[0] = _r.a.x;
 		this->pos_[1] = _r.a.y;
@@ -142,9 +206,33 @@ struct BoxTest : public eng::UIView
 		this->pos_[9] = _r.a.x;
 		this->pos_[10] = _r.b.y;
 
+		this->shader_ = GenerateShader(VERTEX_SHADER, FRAGMENT_SHADER);
+		this->projection_pos_ = glGetUniformLocation(this->shader_, "ProjectionMat");
+		this->color_pos_ = glGetUniformLocation(this->shader_, "BoxColor");
+
+		eng::UBind _uvao{ &this->vao_ };
+		glGenBuffers(2, this->vbos_);
+
+		glBindBuffer(GL_ARRAY_BUFFER, this->vbos_[0]);
+		glEnableVertexAttribArray(0);
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(this->pos_), this->pos_.data(), GL_STATIC_DRAW);
+
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, this->vbos_[1]);
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(this->indices_), this->indices_.data(), GL_STATIC_DRAW);
+
 	};
 
+	GLuint shader_ = 0;
+	GLuint projection_pos_ = 0;
+
 private:
+	GLuint color_pos_ = 0;
+
+	eng::ColorRGB_8 color_{};
+
+	eng::VAO vao_{};
+	GLuint vbos_[2]{};
 
 	std::array<float_t, 12> pos_ =
 	{
@@ -162,33 +250,53 @@ private:
 
 };
 
-struct SceneView : public eng::UIView
+struct TestWindow : public eng::GFXWindow
 {
-	std::vector<std::shared_ptr<BoxTest>> boxes_{};
-	std::shared_ptr<TriDrawer> drawer_;
+
+	HANDLE_EVENT_RETURN handle_event(const eng::Event& _event) override
+	{
+		using EVENT = eng::Event::EVENT_TYPE;
+		auto _out = eng::GFXWindow::handle_event(_event);
+		if (_out == HANDLE_EVENT_RETURN::IGNORED)
+		{
+			
+		};
+		return _out;
+	};
+
+	using eng::GFXWindow::GFXWindow;
+
 };
 
 int main(int argc, char* argv[], char* envp[])
 {
 	eng::GLFWLib _glfw{};
-	eng::GFXWindow _window{ 800, 600, "haha brrr" };
-
+	TestWindow _window{ 800, 600, "haha brrr" };
 	_window.make_current();
-	std::shared_ptr<SceneView> _sv{ new SceneView{ _window.bounds() } };
 
-	auto _brect = _window.bounds();
+	auto _boxRect = _window.bounds();
+	_boxRect.a.x = 50;
+	_boxRect.b.x = 150;
+	
+	_boxRect.a.y = 50;
+	_boxRect.b.y = 150;
 
-	_brect.b.x = 100;
-	_brect.b.y = 100;
-	_sv->new_box(_brect);
+	std::shared_ptr<BoxTest> _box{ new BoxTest{ _boxRect } };
+	_window.insert(_box);
 
-	_brect.shift(200, 0);
-	_sv->new_box(_brect);
-	_window.insert(_sv);
+	eng::ColorRGB_8 _bcol{ 150, 0, 0 };
+	_box->set_color(_bcol);
+
+	auto _wortho = _window.bounds().ortho();
+
+	uint64_t _tcounter = 0;
 
 	while (true)
 	{
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		glUseProgram(_box->shader_);
+		glUniformMatrix4fv(_box->projection_pos_, 1, GL_FALSE, &_wortho[0][0]);
 
 		_window.draw();
 		_glfw.poll_events();
