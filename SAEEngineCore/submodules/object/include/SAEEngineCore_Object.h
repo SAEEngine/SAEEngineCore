@@ -455,18 +455,15 @@ namespace sae::engine::core
 
 	class UIToggleButton : public UIView
 	{
-	public:
-
-
 	private:
 		static inline Palette DEFAULT_PALETTE
 		{
-			{ ColorRGBA_8{ 255, 255, 255, 255 } },	// resting-inactive state
-			{ ColorRGBA_8{ 255, 255, 255, 255 } },	// resting-active state
-			{ ColorRGBA_8{ 255, 255, 255, 255 } },	// pushed-inactive state
-			{ ColorRGBA_8{ 255, 255, 255, 255 } },	// pushed-active state
-			{ ColorRGBA_8{ 255, 255, 255, 255 } },	// hovered-active state
-			{ ColorRGBA_8{ 255, 255, 255, 255 } }	// hovered-inactive state
+			{ ColorRGBA_8{ 140, 30, 30, 255 } },	// resting-inactive state
+			{ ColorRGBA_8{ 30, 140, 30, 255 } },	// resting-active state
+			{ ColorRGBA_8{ 20, 80, 20, 255 } },		// pushed-active state
+			{ ColorRGBA_8{ 80, 20, 20, 255 } },	// pushed-inactive state
+			{ ColorRGBA_8{ 160, 80, 80, 255 } },	// hovered-inactive state
+			{ ColorRGBA_8{ 80, 160, 80, 255 } }	// hovered-active state
 		};
 
 		enum BUTTON_STATE
@@ -481,15 +478,12 @@ namespace sae::engine::core
 
 		BUTTON_STATE state_ = BUTTON_STATE::RESTING_INACTIVE;
 
-		EventResponse on_push_;
-		EventResponse on_release_;
-		EventResponse on_mouse_enter_;
-		EventResponse on_mouse_leave_;
-
-		bool is_hovered_ = true;
-
+		bool is_hovered_ = false;
 		bool is_down_ = false;
-		int down_button_ = 0;
+		bool is_active_ = false;
+
+		EventResponse on_toggle_on_;
+		EventResponse on_toggle_off_;
 
 		void handle_response(const EventResponse& _ev, const Event& _fromEvent);
 
@@ -498,11 +492,13 @@ namespace sae::engine::core
 		HANDLE_EVENT_RETURN handle_cursor_event(const Event::evCursorMove& _event);
 
 	public:
+		Palette& get_palette() const override { return this->DEFAULT_PALETTE; };
+
+		BUTTON_STATE get_state() const noexcept { return this->state_; };
 
 		HANDLE_EVENT_RETURN handle_event(const Event& _event) override;
 
-		UIToggleButton(UIRect _r, const EventResponse& _onPush, const EventResponse& _onRelease,
-			const EventResponse& _onMouseEnter, const EventResponse& _onMouseLeave);
+		UIToggleButton(UIRect _r, const EventResponse& _onToggleOn, const EventResponse& _onToggleOff);
 
 	};
 	

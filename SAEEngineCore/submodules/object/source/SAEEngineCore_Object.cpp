@@ -356,22 +356,114 @@ namespace sae::engine::core
 {
 	void UIToggleButton::handle_response(const EventResponse& _ev, const Event& _fromEvent)
 	{
-
+		switch (_ev.type())
+		{
+		case EventResponse::DEFERRED:
+			this->context()->push_event(_ev.get<EventResponse::DEFERRED>());
+			break;
+		case EventResponse::IMMEDIATE:
+			_ev.get<EventResponse::IMMEDIATE>().invoke(_fromEvent);
+			break;
+		default:
+			abort();
+		};
 	};
 
 	UIToggleButton::HANDLE_EVENT_RETURN UIToggleButton::handle_mouse_event(const Event::evMouse& _evmouse)
 	{
+		HANDLE_EVENT_RETURN _out = IGNORED;
+		if (!this->bounds().intersects({ _evmouse.cursor_x, _evmouse.cursor_y }))
+		{
+			return IGNORED;
+		};
 
+		if (this->is_down_ && _evmouse.action == GLFW_RELEASE)
+		{
+			this->is_active_ = !this->is_active_;
+			if (this->is_active_)
+			{
+				this->state_ = BUTTON_STATE::HOVERED_ACTIVE;
+				this->handle_response(this->on_toggle_on_, _evmouse);
+			}
+			else
+			{
+				this->state_ = BUTTON_STATE::HOVERED_INACTIVE;
+				this->handle_response(this->on_toggle_off_, _evmouse);
+			};
+			this->is_down_ = false;
+		}
+		else if(!this->is_down_ && _evmouse.action == GLFW_PRESS)
+		{
+			if (this->is_active_)
+			{
+				this->state_ = BUTTON_STATE::PUSHED_ACTIVE;
+			}
+			else
+			{
+				this->state_ = BUTTON_STATE::PUSHED_INACTIVE;
+			};
+			this->is_down_ = true;
+		};
+
+		return _out;
 	};
 	UIToggleButton::HANDLE_EVENT_RETURN UIToggleButton::handle_cursor_event(const Event::evCursorMove& _event)
 	{
-
+		HANDLE_EVENT_RETURN _out = IGNORED;
+		bool _isect = this->bounds().intersects({ _event.cursor_x, _event.cursor_y });
+		
+		if (this->is_hovered_ && !_isect)
+		{
+			if (this->is_active_)
+			{
+				this->state_ = BUTTON_STATE::RESTING_ACTIVE;
+			}
+			else
+			{
+				this->state_ = BUTTON_STATE::RESTING_INACTIVE;
+			};
+			this->is_hovered_ = false;
+			this->is_down_ = false;
+		}
+		else if (!this->is_hovered_ && _isect && !this->is_down_)
+		{
+			if (this->is_active_)
+			{
+				this->state_ = BUTTON_STATE::HOVERED_ACTIVE;
+			}
+			else
+			{
+				this->state_ = BUTTON_STATE::HOVERED_INACTIVE;
+			};
+			this->is_hovered_ = true;
+		};
+	
+		return _out;
 	};
-
 	UIToggleButton::HANDLE_EVENT_RETURN UIToggleButton::handle_event(const Event& _event)
 	{
-
+		using EVENT = Event::EVENT_TYPE;
+		auto _out = UIView::handle_event(_event);
+		if (_out == IGNORED)
+		{
+			switch (_event.index())
+			{
+			case EVENT::MOUSE_EVENT:
+				this->handle_mouse_event(_event.get<EVENT::MOUSE_EVENT>());
+				break;
+			case EVENT::CURSOR_MOVE:
+				this->handle_cursor_event(_event.get<EVENT::CURSOR_MOVE>());
+				break;
+			default:
+				break;
+			};
+		};
+		return _out;
 	};
+
+	UIToggleButton::UIToggleButton(UIRect _r, const EventResponse& _onToggleOn, const EventResponse& _onToggleOff) : 
+		UIView{ _r }, on_toggle_on_{ _onToggleOn }, on_toggle_off_{ _onToggleOff }
+	{};
 
 }
 

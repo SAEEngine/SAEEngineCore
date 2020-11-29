@@ -122,18 +122,20 @@ GLuint GenerateShader(const std::string& VertexShaderCode, const std::string& Fr
 
 #pragma endregion NASTY_EXTRA_BITS
 
-constexpr eng::Event::evUser evBoxPress{ 1 };
-constexpr eng::Event::evUser evBoxRelease{ 2 };
-constexpr eng::Event::evUser evBoxMouseEnter{ 3 };
-constexpr eng::Event::evUser evBoxMouseLeave{ 4 };
+constexpr eng::Event::evUser evBoxToggleON{ 1 };
+constexpr eng::Event::evUser evBoxToggleOFF{ 2 };
 
-struct BoxTest : public eng::UIPushButton
+struct BoxTest : public eng::UIToggleButton
 {
 	void draw_self() override
 	{
 		eng::UBind _uvao{ &this->vao_ };
 
 		float_t _fvColor[3]{};
+		this->set_color(
+			std::get<1>(this->get_palette().at((size_t)this->get_state()))
+		);
+
 		_fvColor[0] = (float_t)this->color_.r / 255.0f;
 		_fvColor[1] = (float_t)this->color_.g / 255.0f;
 		_fvColor[2] = (float_t)this->color_.b / 255.0f;
@@ -148,7 +150,7 @@ struct BoxTest : public eng::UIPushButton
 	HANDLE_EVENT_RETURN	handle_event(const eng::Event& _event) override
 	{
 		using EVENT = eng::Event::EVENT_TYPE;
-		auto _res = UIPushButton::handle_event(_event);
+		auto _res = UIToggleButton::handle_event(_event);
 		if (_res == IGNORED)
 		{
 			switch (_event.index())
@@ -156,20 +158,10 @@ struct BoxTest : public eng::UIPushButton
 			case EVENT::USER_EVENT:
 				switch (_event.get<EVENT::USER_EVENT>().ev)
 				{
-				case evBoxPress.ev:
-					this->set_color(eng::ColorRGB_8{ 80, 20, 20 });
+				case evBoxToggleON.ev:
 					_res = HANDLED;
 					break;
-				case evBoxRelease.ev:
-					this->set_color(eng::ColorRGB_8{ 200, 60, 60 });
-					_res = HANDLED;
-					break;
-				case evBoxMouseEnter.ev:
-					this->set_color(eng::ColorRGB_8{ 200, 60, 60 });
-					_res = HANDLED;
-					break;
-				case evBoxMouseLeave.ev:
-					this->set_color(eng::ColorRGB_8{ 160, 20, 20 });
+				case evBoxToggleOFF.ev:
 					_res = HANDLED;
 					break;
 				default:
@@ -183,7 +175,7 @@ struct BoxTest : public eng::UIPushButton
 		return _res;
 	};
 
-	void set_color(eng::ColorRGB_8 _col)
+	void set_color(eng::ColorRGBA_8 _col)
 	{
 		this->color_ = _col;
 	};
@@ -192,7 +184,7 @@ struct BoxTest : public eng::UIPushButton
 
 
 	BoxTest(eng::UIRect _r) :
-		eng::UIPushButton{ _r, evBoxPress , evBoxRelease, evBoxMouseEnter, evBoxMouseLeave }
+		eng::UIToggleButton{ _r, evBoxToggleON, evBoxToggleOFF }
 	{
 		this->pos_[0] = _r.a.x;
 		this->pos_[1] = _r.a.y;
@@ -229,7 +221,7 @@ struct BoxTest : public eng::UIPushButton
 private:
 	GLuint color_pos_ = 0;
 
-	eng::ColorRGB_8 color_{};
+	eng::ColorRGBA_8 color_{};
 
 	eng::VAO vao_{};
 	GLuint vbos_[2]{};
@@ -277,18 +269,17 @@ int main(int argc, char* argv[], char* envp[])
 	auto _boxRect = _window.bounds();
 	_boxRect.a.x = 50;
 	_boxRect.b.x = 150;
-	
 	_boxRect.a.y = 50;
 	_boxRect.b.y = 150;
 
 	std::shared_ptr<BoxTest> _box{ new BoxTest{ _boxRect } };
 	_window.insert(_box);
 
-	eng::ColorRGB_8 _bcol{ 150, 0, 0 };
-	_box->set_color(_bcol);
+	_boxRect.shift(200, 0);
+	std::shared_ptr<BoxTest> _box2{ new BoxTest{ _boxRect } };
+	_window.insert(_box2);
 
 	auto _wortho = _window.bounds().ortho();
-
 	uint64_t _tcounter = 0;
 
 	while (true)
