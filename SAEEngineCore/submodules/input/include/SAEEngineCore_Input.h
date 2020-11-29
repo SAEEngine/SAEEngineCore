@@ -21,7 +21,11 @@ namespace sae::engine::core
 
 		static Position get_position(GLFWwindow* _window);
 
+		
+
 	};
+
+
 
 
 

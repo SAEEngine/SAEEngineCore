@@ -66,7 +66,7 @@ set(link_libs_private
 
 ## Define the source files variable
 set(src_files 
-	"include/SAEEngineCore_EventType.h"
+	"include/${PROJECT_NAME}Type.h"
 )
 
 ## Add the source files

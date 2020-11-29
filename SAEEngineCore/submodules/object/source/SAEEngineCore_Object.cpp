@@ -3,38 +3,35 @@
 #include <SAEEngineCore_Logging.h>
 #include <SAEEngineCore_Input.h>
 
+#include <bitset>
+#include <array>
+
 namespace sae::engine::core
 {
-	glm::mat4 UIRect::ortho() const noexcept
-	{
-		auto _out = glm::ortho((float_t)this->a.x, (float_t)this->b.x, (float_t)this->b.y, (float_t)this->a.y);
-		return _out;
-	};
 
 	UIRect& UIRect::shift(pixels_t _dx, pixels_t _dy) noexcept
 	{
-		this->a.x += _dx;
-		this->a.y += _dy;
+		this->left() += _dx;
+		this->right() += _dx;
 
-		this->b.x += _dx;
-		this->b.y += _dy;
+		this->top() += _dy;
+		this->bottom() += _dy;
 
 		return *this;
 	};
 
 	UIRect& UIRect::grow(pixels_t _dw, pixels_t _dh) noexcept
 	{
-		this->a.x += _dw;
-		this->a.y += _dh;
-		
-		this->b.x -= _dw;
-		this->b.y -= _dh;
+		this->left() -= _dw;
+		this->right() += _dw;
 
+		this->top() -= _dh;
+		this->bottom() += _dh;
+		
 		return *this;
 	};
 
 }
-
 
 namespace sae::engine::core
 {
@@ -73,9 +70,40 @@ namespace sae::engine::core
 		this->draw_self();
 	};
 
-	Palette& UIObject::get_palette() const
+	ColorSet<ColorRGBA_8>& UIObject::get_palette() const
 	{
 		return this->EMPTY_PALLETE;
+	};
+
+	GrowMode& UIObject::grow_mode() noexcept
+	{
+		return this->grow_mode_;
+	};
+
+	const GrowMode& UIObject::grow_mode() const noexcept
+	{
+		return this->grow_mode_;
+	};
+
+	void UIObject::grow(int16_t _dw, int16_t _dh)
+	{
+		using GBIT = GrowMode::GROW_BIT_E;
+		
+		const auto& _gmode = this->grow_mode();
+		auto _bounds = this->bounds();
+		
+		if (_gmode.is_set(GBIT::RIGHT))
+		{
+			auto _w = _bounds.width() + _dw;
+			_bounds.right() = _bounds.left() + _w;
+		};
+		if (_gmode.is_set(GBIT::LEFT))
+		{
+			_bounds.left() += _dw;
+		};
+
+
+		this->set_bounds(_bounds);
 	};
 
 	UIObject::HANDLE_EVENT_RETURN UIObject::handle_event(const Event& _event)
@@ -150,6 +178,15 @@ namespace sae::engine::core
 	void UIView::remove(UIObject* _obj)
 	{
 		UIGroup::remove(_obj);
+	};
+
+	void UIView::grow(int16_t _dw, int16_t _dh)
+	{
+		UIObject::grow(_dw, _dh);
+		for (auto& o : this->children())
+		{
+			o->grow(_dw, _dh);
+		};
 	};
 
 }
@@ -484,7 +521,21 @@ namespace sae::engine::core
 			_evm.cursor_x = _cursorPos.x;
 			_evm.cursor_y = _cursorPos.y;
 
-			_ptr->handle_event(_evm);
+			_ptr->context()->push_event(_evm);
+		};
+	};
+
+	void GFXWindow::glfw_key_callback(GLFWwindow* _window, int _key, int _scancode, int _action, int _mods)
+	{
+		auto _ptr = (GFXWindow*)glfwGetWindowUserPointer(_window);
+		if (_ptr)
+		{
+			Event::evKey _event{};
+			_event.key = _key;
+			_event.scancode = _scancode;
+			_event.action = _action;
+			_event.mods = _mods;
+			_ptr->context()->push_event(_event);
 		};
 	};
 
@@ -496,10 +547,47 @@ namespace sae::engine::core
 			Event::evCursorMove _evm{};
 			_evm.cursor_x = (int16_t)_x;
 			_evm.cursor_y = (int16_t)_y;
-			_ptr->handle_event(_evm);
+			_ptr->context()->push_event(_evm);
+		};
+	};
+	void GFXWindow::glfw_cursor_enter_callback(GLFWwindow* _window, int _entered)
+	{
+		auto _ptr = (GFXWindow*)glfwGetWindowUserPointer(_window);
+		if (_ptr)
+		{
+			Event::evCursorWindowBounds _event{};
+			if (_entered)
+			{
+				_event.action == Event::evCursorWindowBounds::ENTER;
+			}
+			else
+			{
+				_event.action == Event::evCursorWindowBounds::EXIT;
+			};
+			_ptr->context()->push_event(_event);
 		};
 	};
 
+	void GFXWindow::glfw_framebuffer_resize_callback(GLFWwindow* _window, int _width, int _height)
+	{
+		auto _ptr = (GFXWindow*)glfwGetWindowUserPointer(_window);
+		if (_ptr)
+		{
+			Event::evWindowResize _event{};
+			_event.width = _width;
+			_event.height = _height;
+			_ptr->context()->push_event(_event);
+		};
+	};
+
+	void GFXWindow::glfw_window_close_callback(GLFWwindow* _window)
+	{
+		auto _ptr = (GFXWindow*)glfwGetWindowUserPointer(_window);
+		if (_ptr)
+		{
+			_ptr->context()->push_event(Event::evWindowClose{});
+		};
+	};
 
 
 
@@ -527,9 +615,18 @@ namespace sae::engine::core
 		UIView{ UIRect{ { 0, 0 }, { _width, _height } } }
 	{
 		this->add_to_context(this);
+
 		glfwSetWindowUserPointer(this->get(), this);
 		glfwSetMouseButtonCallback(this->get(), &GFXWindow::glfw_mouse_button_callback );
+
+		glfwSetKeyCallback(this->get(), &GFXWindow::glfw_key_callback);
+
 		glfwSetCursorPosCallback(this->get(), &GFXWindow::glfw_cursor_move_callback );
+		glfwSetCursorEnterCallback(this->get(), &GFXWindow::glfw_cursor_enter_callback );
+
+		glfwSetWindowCloseCallback(this->get(), &GFXWindow::glfw_window_close_callback);
+		glfwSetFramebufferSizeCallback(this->get(), &GFXWindow::glfw_framebuffer_resize_callback);
+
 	};
 
 }

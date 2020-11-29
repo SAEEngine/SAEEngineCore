@@ -132,9 +132,7 @@ struct BoxTest : public eng::UIToggleButton
 		eng::UBind _uvao{ &this->vao_ };
 
 		float_t _fvColor[3]{};
-		this->set_color(
-			std::get<1>(this->get_palette().at((size_t)this->get_state()))
-		);
+		this->set_color(this->get_palette().at((size_t)this->get_state()));
 
 		_fvColor[0] = (float_t)this->color_.r / 255.0f;
 		_fvColor[1] = (float_t)this->color_.g / 255.0f;
@@ -180,7 +178,29 @@ struct BoxTest : public eng::UIToggleButton
 		this->color_ = _col;
 	};
 
+	void grow(int16_t _dw, int16_t _dh) override
+	{
+		eng::UIToggleButton::grow(_dw, _dh);
 
+		auto _r = this->bounds();
+
+		this->pos_[0] = _r.left();
+		this->pos_[1] = _r.top();
+
+		this->pos_[3] = _r.right();
+		this->pos_[4] = _r.top();
+
+		this->pos_[6] = _r.right();
+		this->pos_[7] = _r.bottom();
+
+		this->pos_[9] = _r.left();
+		this->pos_[10] = _r.bottom();
+
+		eng::UBind _vb{ &this->vao_ };
+		glBindBuffer(GL_ARRAY_BUFFER, this->vbos_[0]);
+		glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(this->pos_), this->pos_.data());
+
+	};
 
 
 	BoxTest(eng::UIRect _r) :
@@ -213,6 +233,8 @@ struct BoxTest : public eng::UIToggleButton
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, this->vbos_[1]);
 		glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(this->indices_), this->indices_.data(), GL_STATIC_DRAW);
 
+		(this->grow_mode() |= eng::GrowMode::RIGHT) |= eng::GrowMode::LEFT;
+
 	};
 
 	GLuint shader_ = 0;
@@ -244,6 +266,48 @@ private:
 
 struct TestWindow : public eng::GFXWindow
 {
+private:
+	bool keep_running_ = true;
+
+	void handle_event_type(const eng::Event::evWindowResize& _event)
+	{
+		glViewport(0, 0, (GLsizei)_event.width, (GLsizei)_event.height);
+
+		auto _wb = this->bounds();
+
+		auto _dw = _event.width - _wb.width();
+		auto _dh = _event.height - _wb.height();
+
+		this->grow(_dw, _dh);
+
+		_wb.right() = _event.width;
+		_wb.bottom() = _event.height;
+
+		this->set_bounds(_wb);
+
+	};
+
+public:
+
+	GLuint shader_ = 0;
+	GLuint projection_pos_ = 0;
+
+	bool good() const noexcept { return this->keep_running_; };
+
+	void draw() override
+	{
+		auto _wb = this->bounds();
+		auto _wortho = glm::ortho((float_t)_wb.left(), (float_t)_wb.right(), (float_t)_wb.bottom(), (float_t)_wb.top());
+
+		glUseProgram(this->shader_);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		glUniformMatrix4fv(this->projection_pos_, 1, GL_FALSE, &_wortho[0][0]);
+
+		GFXWindow::draw();
+
+		glfwPollEvents();
+	};
 
 	HANDLE_EVENT_RETURN handle_event(const eng::Event& _event) override
 	{
@@ -251,7 +315,19 @@ struct TestWindow : public eng::GFXWindow
 		auto _out = eng::GFXWindow::handle_event(_event);
 		if (_out == HANDLE_EVENT_RETURN::IGNORED)
 		{
-			
+			switch (_event.index())
+			{
+			case EVENT::WINDOW_RESIZE:
+				this->handle_event_type(_event.get<EVENT::WINDOW_RESIZE>());
+				_out = HANDLED;
+				break;
+			case EVENT::WINDOW_CLOSE:
+				this->keep_running_ = false;
+				_out = HANDLED;
+				break;
+			default:
+				break;
+			};
 		};
 		return _out;
 	};
@@ -279,19 +355,12 @@ int main(int argc, char* argv[], char* envp[])
 	std::shared_ptr<BoxTest> _box2{ new BoxTest{ _boxRect } };
 	_window.insert(_box2);
 
-	auto _wortho = _window.bounds().ortho();
-	uint64_t _tcounter = 0;
+	_window.shader_ = _box->shader_;
+	_window.projection_pos_ = _box->projection_pos_;
 
-	while (true)
+	while (_window.good())
 	{
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-		glUseProgram(_box->shader_);
-		glUniformMatrix4fv(_box->projection_pos_, 1, GL_FALSE, &_wortho[0][0]);
-
 		_window.draw();
-		_glfw.poll_events();
-		
 		std::this_thread::sleep_for(std::chrono::milliseconds{ 10 });
 	};
 

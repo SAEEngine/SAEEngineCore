@@ -47,16 +47,56 @@ namespace sae::engine::core
 		ScreenPoint b;
 
 		/**
+		 * @brief Returns a reference to the position of the left side of the rectangle
+		*/
+		pixels_t& left() noexcept { return this->a.x; };
+		
+		/**
+		 * @brief Returns a const reference the position of the left side of the rectangle
+		*/
+		constexpr const pixels_t& left() const noexcept { return this->a.x; };
+
+		/**
+		 * @brief Returns a reference to the position of the right side of the rectangle
+		*/
+		pixels_t& right() noexcept { return this->b.x; };
+
+		/**
+		 * @brief Returns a const reference the position of the right side of the rectangle
+		*/
+		constexpr const pixels_t& right() const noexcept { return this->b.x; };
+		
+		/**
+		 * @brief Returns a reference to the position of the top side of the rectangle
+		*/
+		pixels_t& top() noexcept { return this->a.y; };
+
+		/**
+		 * @brief Returns a const reference the position of the top side of the rectangle
+		*/
+		constexpr const pixels_t& top() const noexcept { return this->a.y; };
+
+		/**
+		 * @brief Returns a reference to the position of bottom top side of the rectangle
+		*/
+		pixels_t& bottom() noexcept { return this->b.y; };
+
+		/**
+		 * @brief Returns a const reference the position of the bottom side of the rectangle
+		*/
+		constexpr const pixels_t& bottom() const noexcept { return this->b.y; };
+
+		/**
 		 * @brief Returns the width of the region
 		 * @return value in pixels
 		*/
-		constexpr pixels_t width() const noexcept { return this->b.x - this->a.x; };
+		constexpr pixels_t width() const noexcept { return this->right() - this->left(); };
 
 		/**
 		 * @brief Returns the height of the region
 		 * @return value in pixels
 		*/
-		constexpr pixels_t height() const noexcept { return this->b.y - this->a.y; };
+		constexpr pixels_t height() const noexcept { return this->bottom() - this->top(); };
 
 		/**
 		 * @brief Shifts the region defined by this rect by _dx horizontally, and _dy and vertically
@@ -79,15 +119,14 @@ namespace sae::engine::core
 		*/
 		constexpr bool intersects(ScreenPoint _p) const noexcept
 		{
-			return (this->a.x <= _p.x && _p.x < this->b.x && this->a.y <= _p.y && _p.y < this->b.y);
+			return (this->left() <= _p.x && _p.x < this->right() && this->top() <= _p.y && _p.y < this->bottom());
 		};
 
-		/**
-		 * @brief Creates a 4x4 matrix using the region as the inputs to glm::ortho
-		*/
-		glm::mat4 ortho() const noexcept;
-
 	};
+
+
+
+
 
 	/**
 	 * @brief Represents an R color with 8 bits for each color value (8 for the full color)
@@ -131,22 +170,36 @@ namespace sae::engine::core
 	};
 
 
-	class Palette
+
+	template <typename ColorT>
+	class ColorSet
 	{
 	public:
-		using color_type = ColorRGBA_8;
-		using value_type = std::variant<uint16_t, color_type>;
+		using value_type = ColorT;
+		using pointer = value_type*;
+		using reference = value_type&;
+		using const_pointer = const value_type*;
+		using const_reference = const value_type&;
 
-		auto& at(size_t i) { return this->entries_.at(i); };
-		const auto& at(size_t i) const { return this->entries_.at(i); };
+	private:
+		using ContainerT = std::vector<value_type>;
 
-		Palette() = default;
-		Palette(std::initializer_list<value_type> _iList) :
+	public:
+		using size_type = typename ContainerT::size_type;
+
+		auto& at(size_type i) { return this->entries_.at(i); };
+		const auto& at(size_type i) const { return this->entries_.at(i); };
+
+
+
+
+		ColorSet() = default;
+		ColorSet(std::initializer_list<value_type> _iList) :
 			entries_{ _iList }
 		{};
 
 	private:
-		std::vector<value_type> entries_{};
+		ContainerT entries_{};
 
 	};
 
@@ -222,12 +275,96 @@ namespace sae::engine::core
 	};
 
 	/**
+	 * @brief Bit flag wrapping type for storing how an object should grow
+	*/
+	class GrowMode
+	{
+	public:
+		enum GROW_BIT : uint8_t 
+		{
+			LEFT = 0x1,
+			RIGHT = 0x2,
+			TOP = 0x04,
+			BOTTOM = 0x08
+		};
+		using GROW_BIT_E = GROW_BIT;
+
+		/**
+		 * @brief Sets a grow bit to 1 
+		*/
+		GrowMode& set(GROW_BIT_E _bit) noexcept
+		{
+			this->bits_ |= (uint8_t)_bit;
+			return *this;
+		};
+
+		/**
+		 * @brief Sets a grow bit to 0
+		*/
+		GrowMode& clear(GROW_BIT_E _bit) noexcept
+		{
+			this->bits_ &= !((uint8_t)_bit);
+			return *this;
+		};
+
+		/**
+		 * @brief Sets the specified grow bit to the specified value
+		 * @param _bit Bit to set
+		 * @param _val Value to set it to
+		*/
+		GrowMode& set_to(GROW_BIT_E _bit, bool _val) noexcept
+		{
+			if (_val)
+			{
+				return this->set(_bit);
+			}
+			else
+			{
+				return this->clear(_bit);
+			};
+		};
+
+		/**
+		 * @brief Returns true if the _bit specified is 1
+		*/
+		constexpr bool is_set(GROW_BIT_E _bit) const noexcept
+		{
+			return ((this->bits_ & (uint8_t)_bit) != 0);
+		};
+
+		/**
+		 * @brief Returns true if the _bit specified is 0
+		*/
+		constexpr bool is_clear(GROW_BIT_E _bit) const noexcept
+		{
+			return !this->is_set(_bit);
+		};
+
+		GrowMode& operator|=(GROW_BIT_E _bit) noexcept
+		{
+			return this->set(_bit);
+		};
+
+		constexpr GrowMode() noexcept = default;
+		
+	protected:
+		constexpr GrowMode(uint8_t _bits) noexcept :
+			bits_{ _bits }
+		{};
+
+	private:
+		uint8_t bits_ = 0x00;
+
+	};
+
+
+
+	/**
 	 * @brief Base type for representing drawable UIObjects
 	*/
 	class UIObject : public GFXBase
 	{
 	public:
-
 		/**
 		 * @brief Sets the bounds for the object
 		 * @param _r UIRect defining the region
@@ -250,15 +387,27 @@ namespace sae::engine::core
 		*/
 		virtual void draw();
 
+		/**
+		 * @brief Returns a NON-const reference to the object's grow mode 
+		*/
+		GrowMode& grow_mode() noexcept;
+
+		/**
+		 * @brief Returns a const reference to the object's grow mode
+		*/
+		const GrowMode& grow_mode() const noexcept;
+
+		virtual void grow(int16_t _dw, int16_t _dh);
+
 	private:
-		static inline Palette EMPTY_PALLETE{};
+		static inline ColorSet<ColorRGBA_8> EMPTY_PALLETE{};
 
 	public:
 
 		/**
 		 * @brief Returns the palette used by the object
 		*/
-		virtual Palette& get_palette() const;
+		virtual ColorSet<ColorRGBA_8>& get_palette() const;
 		
 		/**
 		 * @brief Enumerator to better describe the return value from the handle_event() function
@@ -280,6 +429,7 @@ namespace sae::engine::core
 
 	private:
 
+		GrowMode grow_mode_{};
 		GFXContext* context_ = nullptr;
 		UIRect bounds_{};
 		float_t z_ = 0.0f;
@@ -369,7 +519,7 @@ namespace sae::engine::core
 
 		void remove(UIObject* _obj) override;
 
-
+		void grow(int16_t _dw, int16_t _dh) override;
 
 		/**
 		 * @brief Passes the event down to children until one of them handles it
@@ -409,7 +559,7 @@ namespace sae::engine::core
 	class UIPushButton : public UIView
 	{
 	private:
-		static inline Palette DEFAULT_PALETTE
+		static inline ColorSet<ColorRGBA_8>  DEFAULT_PALETTE
 		{ 
 			{ ColorRGBA_8{ 255, 255, 255, 255 } },	// resting state
 			{ ColorRGBA_8{ 255, 255, 255, 255 } },	// pushed state
@@ -444,7 +594,7 @@ namespace sae::engine::core
 
 
 	public:
-		Palette& get_palette() const override { return this->DEFAULT_PALETTE; };
+		ColorSet<ColorRGBA_8>& get_palette() const override { return this->DEFAULT_PALETTE; };
 
 		HANDLE_EVENT_RETURN handle_event(const Event& _event) override;
 
@@ -456,7 +606,7 @@ namespace sae::engine::core
 	class UIToggleButton : public UIView
 	{
 	private:
-		static inline Palette DEFAULT_PALETTE
+		static inline ColorSet<ColorRGBA_8>  DEFAULT_PALETTE
 		{
 			{ ColorRGBA_8{ 140, 30, 30, 255 } },	// resting-inactive state
 			{ ColorRGBA_8{ 30, 140, 30, 255 } },	// resting-active state
@@ -492,7 +642,7 @@ namespace sae::engine::core
 		HANDLE_EVENT_RETURN handle_cursor_event(const Event::evCursorMove& _event);
 
 	public:
-		Palette& get_palette() const override { return this->DEFAULT_PALETTE; };
+		ColorSet<ColorRGBA_8>& get_palette() const override { return this->DEFAULT_PALETTE; };
 
 		BUTTON_STATE get_state() const noexcept { return this->state_; };
 
@@ -512,7 +662,16 @@ namespace sae::engine::core
 	{
 	private:
 		static void glfw_mouse_button_callback(GLFWwindow* _window, int _button, int _action, int _mods);
+
+		static void glfw_key_callback(GLFWwindow* _window, int _key, int _scancode, int _action, int _modss);
+
 		static void glfw_cursor_move_callback(GLFWwindow* _window, double _x, double _y);
+		static void glfw_cursor_enter_callback(GLFWwindow* _window, int _entered);
+		
+		static void glfw_framebuffer_resize_callback(GLFWwindow* _window, int _width, int _height);
+		static void glfw_window_close_callback(GLFWwindow* _window);
+
+		
 
 	public:
 

@@ -27,7 +27,12 @@ namespace sae::engine::core
 		template <>
 		struct EventType<EVENT_TYPE_E::CURSOR_WINDOW_BOUNDS>
 		{
-			
+			enum CURSOR_ACTION
+			{
+				ENTER,
+				EXIT
+			};
+			CURSOR_ACTION action;
 		};
 		using evCursorWindowBounds = EventType<EVENT_TYPE_E::CURSOR_WINDOW_BOUNDS>;
 
@@ -53,7 +58,10 @@ namespace sae::engine::core
 		template <>
 		struct EventType<EVENT_TYPE_E::KEY_EVENT>
 		{
-
+			int key = 0;
+			int scancode = 0;
+			int action = 0;
+			int mods = 0;
 		};
 		using evKey = EventType<EVENT_TYPE_E::KEY_EVENT>;
 
@@ -71,6 +79,22 @@ namespace sae::engine::core
 		};
 		using evUser = EventType<EVENT_TYPE_E::USER_EVENT>;
 
+		template <>
+		struct EventType<EVENT_TYPE_E::WINDOW_RESIZE>
+		{
+			int16_t width = 0;
+			int16_t height = 0;
+		};
+		using evWindowResize = EventType<EVENT_TYPE_E::WINDOW_RESIZE>;
+
+		template <>
+		struct EventType<EVENT_TYPE_E::WINDOW_CLOSE>
+		{
+
+		};
+		using evWindowClose = EventType<EVENT_TYPE_E::WINDOW_CLOSE>;
+
+
 	protected:
 
 		using variant_type = std::variant<
@@ -79,7 +103,9 @@ namespace sae::engine::core
 			EventType<EVENT_TYPE_E::MOUSE_EVENT>,
 			EventType<EVENT_TYPE_E::KEY_EVENT>,
 			EventType<EVENT_TYPE_E::SCROLL_EVENT>,
-			EventType<EVENT_TYPE_E::USER_EVENT>
+			EventType<EVENT_TYPE_E::USER_EVENT>,
+			EventType<EVENT_TYPE_E::WINDOW_RESIZE>,
+			EventType<EVENT_TYPE_E::WINDOW_CLOSE>
 		>;
 
 		variant_type& get_variant() noexcept { return this->vt_; };
