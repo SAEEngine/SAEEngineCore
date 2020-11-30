@@ -25,6 +25,13 @@ namespace sae::engine::core
 		struct EventType;
 
 		template <>
+		struct EventType<EVENT_TYPE_E::BLACKBOARD_CHANGE>
+		{
+			std::string key;
+		};
+		using evBlackboardChange = EventType<EVENT_TYPE_E::BLACKBOARD_CHANGE>;
+
+		template <>
 		struct EventType<EVENT_TYPE_E::CURSOR_WINDOW_BOUNDS>
 		{
 			enum CURSOR_ACTION
@@ -98,6 +105,7 @@ namespace sae::engine::core
 	protected:
 
 		using variant_type = std::variant<
+			EventType<EVENT_TYPE_E::BLACKBOARD_CHANGE>,
 			EventType<EVENT_TYPE_E::CURSOR_WINDOW_BOUNDS>,
 			EventType<EVENT_TYPE_E::CURSOR_MOVE>,
 			EventType<EVENT_TYPE_E::MOUSE_EVENT>,

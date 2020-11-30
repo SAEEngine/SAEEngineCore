@@ -8,7 +8,6 @@
 
 namespace sae::engine::core
 {
-
 	UIRect& UIRect::shift(pixels_t _dx, pixels_t _dy) noexcept
 	{
 		this->left() += _dx;
@@ -30,12 +29,47 @@ namespace sae::engine::core
 		
 		return *this;
 	};
-
 }
 
 namespace sae::engine::core
 {
+	bool UIBlackboard::contains(const key_type& _k) const
+	{
+		return this->entries_.contains(_k);
+	};
 
+	UIBlackboard::value_type& UIBlackboard::at(const key_type& _k)
+	{
+		return this->entries_.at(_k);
+	};
+	const UIBlackboard::value_type& UIBlackboard::at(const key_type& _k) const
+	{
+		return this->entries_.at(_k);
+	};
+
+	void UIBlackboard::erase(const key_type& _k)
+	{
+		this->entries_.erase(_k);
+	};
+
+	void UIBlackboard::insert(const value_type& _v)
+	{
+		this->entries_.insert({ _v.name(), _v });
+	};
+	void UIBlackboard::insert(value_type&& _v)
+	{
+		auto _name = _v.name();
+		this->entries_.insert({ _name, std::move(_v) });
+	};
+
+	void UIBlackboard::clear() noexcept
+	{
+		this->entries_.clear();
+	};
+}
+
+namespace sae::engine::core
+{
 	GFXContext* GFXBase::context() const noexcept
 	{
 		return this->context_;
@@ -45,13 +79,10 @@ namespace sae::engine::core
 	{
 		this->context_ = _context;
 	};
-
 }
-
 
 namespace sae::engine::core
 {
-
 	void UIObject::set_bounds(UIRect _r) noexcept
 	{
 		this->bounds_ = _r;
@@ -90,20 +121,27 @@ namespace sae::engine::core
 		using GBIT = GrowMode::GROW_BIT_E;
 		
 		const auto& _gmode = this->grow_mode();
-		auto _bounds = this->bounds();
-		
-		if (_gmode.is_set(GBIT::RIGHT))
-		{
-			auto _w = _bounds.width() + _dw;
-			_bounds.right() = _bounds.left() + _w;
-		};
+		UIRect _newBounds = this->bounds();
+		UIRect _oldBounds = this->bounds();
+
 		if (_gmode.is_set(GBIT::LEFT))
 		{
-			_bounds.left() += _dw;
+			_newBounds.left() += _dw;
+		};
+		if (_gmode.is_set(GBIT::RIGHT))
+		{
+			_newBounds.right() += _dw;
+		};
+		if (_gmode.is_set(GBIT::TOP))
+		{
+			_newBounds.top() += _dh;
+		};
+		if (_gmode.is_set(GBIT::BOTTOM))
+		{
+			_newBounds.bottom() += _dh;
 		};
 
-
-		this->set_bounds(_bounds);
+		this->set_bounds(_newBounds);
 	};
 
 	UIObject::HANDLE_EVENT_RETURN UIObject::handle_event(const Event& _event)
@@ -131,6 +169,7 @@ namespace sae::engine::core
 
 	void UIGroup::insert(std::shared_ptr<UIObject> _obj)
 	{
+		_obj->refresh();
 		this->get_container().push_back(std::move(_obj));
 	};
 	void UIGroup::remove(UIObject* _obj)
@@ -178,6 +217,15 @@ namespace sae::engine::core
 	void UIView::remove(UIObject* _obj)
 	{
 		UIGroup::remove(_obj);
+	};
+
+	void UIView::refresh()
+	{
+		UIObject::refresh();
+		for (auto& o : this->children())
+		{
+			o->refresh();
+		};
 	};
 
 	void UIView::grow(int16_t _dw, int16_t _dh)
@@ -427,6 +475,7 @@ namespace sae::engine::core
 				this->state_ = BUTTON_STATE::HOVERED_INACTIVE;
 				this->handle_response(this->on_toggle_off_, _evmouse);
 			};
+			this->context()->blackboard().at(this->bb_key_) = this->is_active_;
 			this->is_down_ = false;
 		}
 		else if(!this->is_down_ && _evmouse.action == GLFW_PRESS)
@@ -500,7 +549,9 @@ namespace sae::engine::core
 
 	UIToggleButton::UIToggleButton(UIRect _r, const EventResponse& _onToggleOn, const EventResponse& _onToggleOff) : 
 		UIView{ _r }, on_toggle_on_{ _onToggleOn }, on_toggle_off_{ _onToggleOff }
-	{};
+	{
+		
+	};
 
 }
 
@@ -589,14 +640,32 @@ namespace sae::engine::core
 		};
 	};
 
+	void GFXWindow::glfw_window_refresh_callback(GLFWwindow* _window)
+	{
+		int _w = 0;
+		int _h = 0;
+		glfwGetFramebufferSize(_window, &_w, &_h);
+		GFXWindow::glfw_framebuffer_resize_callback(_window, _w, _h);
+	};
 
 
+
+	void GFXWindow::grow(int16_t _dw, int16_t _dh)
+	{
+		UIView::grow(_dw, _dh);
+		glViewport(this->bounds().left(), this->bounds().top(), this->bounds().width(), this->bounds().height());
+	};
 
 	void GFXWindow::draw()
 	{
 		this->make_current();
 		UIView::draw();
 		this->swap_buffers();
+	};
+
+	void GFXWindow::refresh()
+	{
+		this->glfw_window_refresh_callback(this->get());
 	};
 
 	GFXWindow::HANDLE_EVENT_RETURN GFXWindow::handle_event(const Event& _event)
@@ -626,6 +695,8 @@ namespace sae::engine::core
 
 		glfwSetWindowCloseCallback(this->get(), &GFXWindow::glfw_window_close_callback);
 		glfwSetFramebufferSizeCallback(this->get(), &GFXWindow::glfw_framebuffer_resize_callback);
+
+		glfwSetWindowRefreshCallback(this->get(), &GFXWindow::glfw_window_refresh_callback);
 
 	};
 

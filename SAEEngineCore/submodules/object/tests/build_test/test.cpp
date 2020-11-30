@@ -127,6 +127,20 @@ constexpr eng::Event::evUser evBoxToggleOFF{ 2 };
 
 struct BoxTest : public eng::UIToggleButton
 {
+private:
+	bool on_toggleOn_cb(const eng::Event& _event)
+	{
+		std::cout << this->context()->blackboard().at(this->bb_key_).get<bool>() << '\n';
+		return true;
+	};
+	bool on_toggleOff_cb(const eng::Event& _event)
+	{
+		std::cout << this->context()->blackboard().at(this->bb_key_).get<bool>() << '\n';
+		return true;
+	};
+
+public:
+
 	void draw_self() override
 	{
 		eng::UBind _uvao{ &this->vao_ };
@@ -202,9 +216,16 @@ struct BoxTest : public eng::UIToggleButton
 
 	};
 
+	void refresh() override
+	{
+		if (this->bb_key_.empty())
+		{
+			this->bb_key_ = this->context()->blackboard().insert_unique(false);
+		};
+	};
 
 	BoxTest(eng::UIRect _r) :
-		eng::UIToggleButton{ _r, evBoxToggleON, evBoxToggleOFF }
+		eng::UIToggleButton{ _r, {{ &BoxTest::on_toggleOn_cb, this }}, {{ &BoxTest::on_toggleOff_cb, this }} }
 	{
 		this->pos_[0] = _r.a.x;
 		this->pos_[1] = _r.a.y;
@@ -233,7 +254,7 @@ struct BoxTest : public eng::UIToggleButton
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, this->vbos_[1]);
 		glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(this->indices_), this->indices_.data(), GL_STATIC_DRAW);
 
-		(this->grow_mode() |= eng::GrowMode::RIGHT) |= eng::GrowMode::LEFT;
+		((this->grow_mode() |= eng::GrowMode::BOTTOM) |= eng::GrowMode::RIGHT) |= eng::GrowMode::LEFT;
 
 	};
 
@@ -264,6 +285,86 @@ private:
 
 };
 
+struct ElementList: public eng::UIView
+{
+public:
+	enum POSITION_AXIS
+	{
+		HORIZONTAL,
+		VERTICAL
+	};
+
+private:
+	void resposition_elements_horizontal()
+	{
+		if (this->child_count() == 0)
+			return;
+
+		int16_t _x = this->bounds().left();
+		int16_t _w = this->bounds().width();
+		int16_t _eachWidth = (_w - (this->child_count() - 1) * this->margin_) / (this->child_count());
+
+		for (auto& o : this->children())
+		{
+			auto _b = o->bounds();
+			_b.left() = _x;
+			_b.right() = _b.left() + _eachWidth;
+			_b.top() = this->bounds().top();
+			_b.bottom() = this->bounds().bottom();
+			o->set_bounds(_b);
+			_x += _eachWidth + this->margin_;
+		};
+
+	};
+	void resposition_elements_vertical()
+	{
+		abort();
+	};
+
+	void reposition_elements()
+	{
+		switch (this->axis_)
+		{
+		case POSITION_AXIS::HORIZONTAL:
+			this->resposition_elements_horizontal();
+			break;
+		case POSITION_AXIS::VERTICAL:
+			this->resposition_elements_vertical();
+			break;
+		default:
+			abort();
+			break;
+		};
+	};
+
+	int16_t margin_ = 5;
+	POSITION_AXIS axis_ = POSITION_AXIS::HORIZONTAL;
+
+public:
+	void insert(std::shared_ptr<eng::UIObject> _ptr)
+	{
+		eng::UIView::insert(_ptr);
+		this->reposition_elements();
+	};
+	void grow(int16_t _dw, int16_t _dh) override
+	{
+		eng::UIView::grow(_dw, _dh);
+		this->reposition_elements();
+	};
+	void refresh() override
+	{
+		this->reposition_elements();
+	};
+
+	ElementList(eng::UIRect _r, POSITION_AXIS _axis, int16_t _margin) :
+		eng::UIView{ _r }, axis_{ _axis }, margin_{ _margin }
+	{};
+
+};
+
+
+
+
 struct TestWindow : public eng::GFXWindow
 {
 private:
@@ -271,8 +372,6 @@ private:
 
 	void handle_event_type(const eng::Event::evWindowResize& _event)
 	{
-		glViewport(0, 0, (GLsizei)_event.width, (GLsizei)_event.height);
-
 		auto _wb = this->bounds();
 
 		auto _dw = _event.width - _wb.width();
@@ -343,20 +442,39 @@ int main(int argc, char* argv[], char* envp[])
 	_window.make_current();
 
 	auto _boxRect = _window.bounds();
-	_boxRect.a.x = 50;
-	_boxRect.b.x = 150;
-	_boxRect.a.y = 50;
-	_boxRect.b.y = 150;
+	_boxRect.grow(-10, -10);
+	_boxRect.top() = _boxRect.bottom() - 100;
 
-	std::shared_ptr<BoxTest> _box{ new BoxTest{ _boxRect } };
-	_window.insert(_box);
+	std::shared_ptr<ElementList> _elist{ new ElementList{ _boxRect, ElementList::POSITION_AXIS::HORIZONTAL, 10 } };
+	_window.insert(_elist);
 
-	_boxRect.shift(200, 0);
+	_elist->grow_mode().set(eng::GrowMode::RIGHT).set(eng::GrowMode::TOP).set(eng::GrowMode::BOTTOM);
+
+
+
+	_boxRect = eng::UIRect{ 0, 0, 32, 32 };
+
+	std::shared_ptr<BoxTest> _box0{ new BoxTest{ _boxRect } };
+	_elist->insert(_box0);
+	std::shared_ptr<BoxTest> _box1{ new BoxTest{ _boxRect } };
+	_elist->insert(_box1);
 	std::shared_ptr<BoxTest> _box2{ new BoxTest{ _boxRect } };
-	_window.insert(_box2);
+	_elist->insert(_box2);
+	std::shared_ptr<BoxTest> _box3{ new BoxTest{ _boxRect } };
+	_elist->insert(_box3);
+	std::shared_ptr<BoxTest> _box4{ new BoxTest{ _boxRect } };
+	_elist->insert(_box4);
+	std::shared_ptr<BoxTest> _box5{ new BoxTest{ _boxRect } };
+	_elist->insert(_box5);
+	std::shared_ptr<BoxTest> _box6{ new BoxTest{ _boxRect } };
+	_elist->insert(_box6);
+	std::shared_ptr<BoxTest> _box7{ new BoxTest{ _boxRect } };
+	_elist->insert(_box7);
 
-	_window.shader_ = _box->shader_;
-	_window.projection_pos_ = _box->projection_pos_;
+
+
+	_window.shader_ = _box0->shader_;
+	_window.projection_pos_ = _box0->projection_pos_;
 
 	while (_window.good())
 	{

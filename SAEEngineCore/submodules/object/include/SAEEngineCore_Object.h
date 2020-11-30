@@ -15,6 +15,9 @@
 #include <algorithm>
 #include <string>
 #include <variant>
+#include <string>
+#include <unordered_map>
+#include <tuple>
 
 namespace sae::engine::core
 {
@@ -203,11 +206,6 @@ namespace sae::engine::core
 
 	};
 
-
-
-
-
-
 #if false
 	/**
 	 * @brief Transforms a rectangle to be relative to the provided parent rectangle
@@ -237,6 +235,140 @@ namespace sae::engine::core
 	};
 #endif
 	
+	
+
+	
+
+
+
+
+
+	// temp as I explore this idea
+
+
+
+
+	class UIData
+	{
+	public:
+		enum ENTRY_TYPE : size_t
+		{
+			NULL_T,
+			BOOL,
+			INT32,
+			UINT32,
+			DOUBLE,
+			STRING
+		};
+
+		struct null_entry_t {};
+		constexpr static inline null_entry_t null_entry{};
+
+	private:
+		using variant_type = std::variant
+			<
+			null_entry_t,
+			bool,
+			int32_t,
+			uint32_t,
+			double_t,
+			std::string
+			>;
+
+	public:
+		ENTRY_TYPE index() const noexcept { return (ENTRY_TYPE)this->vt_.index(); };
+
+		const std::string& name() const noexcept { return this->name_; };
+
+		template <typename T>
+		void set(T&& _val)
+		{
+			std::get<std::remove_cvref_t<T>>(this->vt_) = std::forward<T>(_val);
+		};
+
+		template <ENTRY_TYPE Type>
+		const auto& get() const
+		{
+			return std::get<(size_t)Type>(this->vt_);
+		};
+		template <typename T>
+		const auto& get() const
+		{
+			return std::get<T>(this->vt_);
+		};
+
+		template <typename T>
+		UIData(const std::string& _name, T&& _val) :
+			name_{ _name }, vt_{ std::forward<T>(_val) }
+		{};
+
+		template <typename T>
+		UIData& operator=(T&& _val)
+		{
+			this->set(std::forward<T>(_val));
+			return *this;
+		};
+
+	private:
+		std::string name_;
+		variant_type vt_{};
+
+	};
+
+	template <typename T>
+	concept cx_blackboard_data = requires (T a)
+	{
+		UIData(a);
+	};
+
+	class UIBlackboard
+	{
+	public:	
+		using value_type = UIData;
+		using key_type = std::string;
+
+	private:
+		using ContainerT = std::unordered_map<key_type, value_type>;
+
+	public:
+		bool contains(const key_type& _k) const;
+
+		void erase(const key_type& _k);
+
+		void clear() noexcept;
+
+		value_type& at(const key_type& _k);
+		const value_type& at(const key_type& _k) const;
+
+		void insert(const value_type& _v);
+		void insert(value_type&& _v);
+
+		template <typename T>
+		void insert(const key_type& _k, T&& _val)
+		{
+			this->entries_.insert({ _k, value_type{ _k, std::forward<T>(_val) } });
+		};
+
+		template <typename T>
+		key_type insert_unique(T&& _val)
+		{
+			std::string _kstr{ "__" + std::to_string(this->uentry_counter_) };
+			++this->uentry_counter_;
+			this->insert(_kstr, std::forward<T>(_val));
+			return _kstr;
+		};
+
+		size_t size() const noexcept;
+
+	private:
+		ContainerT entries_{};
+		size_t uentry_counter_ = 0;
+
+	};
+
+
+
+
 
 	class GFXContext;
 
@@ -263,6 +395,10 @@ namespace sae::engine::core
 	public:
 		virtual void push_event(const Event& _ev) = 0;
 
+		UIBlackboard& blackboard() noexcept { return this->blackboard_; };
+		const UIBlackboard& blackboard() const noexcept { return this->blackboard_; };
+
+
 	protected:
 		friend UIGroup;
 
@@ -270,7 +406,11 @@ namespace sae::engine::core
 		{
 			_obj->set_context(this);
 		};
+		
 		virtual ~GFXContext() = default;
+
+	private:
+		UIBlackboard blackboard_{};
 
 	};
 
@@ -399,6 +539,9 @@ namespace sae::engine::core
 
 		virtual void grow(int16_t _dw, int16_t _dh);
 
+
+		virtual void refresh() {};
+
 	private:
 		static inline ColorSet<ColorRGBA_8> EMPTY_PALLETE{};
 
@@ -521,6 +664,8 @@ namespace sae::engine::core
 
 		void grow(int16_t _dw, int16_t _dh) override;
 
+		void refresh() override;
+
 		/**
 		 * @brief Passes the event down to children until one of them handles it
 		 * @param _ev Event to handle
@@ -611,9 +756,9 @@ namespace sae::engine::core
 			{ ColorRGBA_8{ 140, 30, 30, 255 } },	// resting-inactive state
 			{ ColorRGBA_8{ 30, 140, 30, 255 } },	// resting-active state
 			{ ColorRGBA_8{ 20, 80, 20, 255 } },		// pushed-active state
-			{ ColorRGBA_8{ 80, 20, 20, 255 } },	// pushed-inactive state
+			{ ColorRGBA_8{ 80, 20, 20, 255 } },		// pushed-inactive state
 			{ ColorRGBA_8{ 160, 80, 80, 255 } },	// hovered-inactive state
-			{ ColorRGBA_8{ 80, 160, 80, 255 } }	// hovered-active state
+			{ ColorRGBA_8{ 80, 160, 80, 255 } }		// hovered-active state
 		};
 
 		enum BUTTON_STATE
@@ -642,6 +787,7 @@ namespace sae::engine::core
 		HANDLE_EVENT_RETURN handle_cursor_event(const Event::evCursorMove& _event);
 
 	public:
+		
 		ColorSet<ColorRGBA_8>& get_palette() const override { return this->DEFAULT_PALETTE; };
 
 		BUTTON_STATE get_state() const noexcept { return this->state_; };
@@ -650,6 +796,8 @@ namespace sae::engine::core
 
 		UIToggleButton(UIRect _r, const EventResponse& _onToggleOn, const EventResponse& _onToggleOff);
 
+	protected:
+		std::string bb_key_{};
 	};
 	
 
@@ -671,7 +819,7 @@ namespace sae::engine::core
 		static void glfw_framebuffer_resize_callback(GLFWwindow* _window, int _width, int _height);
 		static void glfw_window_close_callback(GLFWwindow* _window);
 
-		
+		static void glfw_window_refresh_callback(GLFWwindow* _window);
 
 	public:
 
@@ -680,9 +828,13 @@ namespace sae::engine::core
 		*/
 		void draw() override;
 
+		void refresh() override;
+
 		HANDLE_EVENT_RETURN handle_event(const Event& _event) override;
 
 		void push_event(const Event& _event) override { this->handle_event(_event); };
+
+		void grow(int16_t _dw, int16_t _dh) override;
 
 		/**
 		 * @brief Opens a new window of size (_width, _height) with title _title
