@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../../error/Error.h"
-#include "../../logging/Logging.h"
+#include <SAEEngineCore_Logging.h>
 
 #include <vector>
 #include <optional>
@@ -171,6 +171,6 @@ namespace sae::engine::core
 	};
 
 
-	std::optional<std::vector<unsigned char>> OpenFile(std::string filename);
+	std::optional<std::vector<unsigned char>> OpenFile(std::filesystem::path _filename);
 
 }

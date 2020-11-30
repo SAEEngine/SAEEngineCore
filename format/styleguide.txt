@@ -30,8 +30,8 @@ Class/Struct member variable names should be suffixed with an underscore unless 
 Class/Struct member variable names should be all lowercase and spaced using underscores.
 	Examples:
 	
-	std::filesystem::path image_path_;
-	std::string image_name_;
+		std::filesystem::path image_path_;
+		std::string image_name_;
 	
 	
 Private and protected class member functions should be all lowercased and spaced with underscores.
@@ -40,7 +40,16 @@ Private and protected class member functions should be all lowercased and spaced
 		std::optional<const char*> to_cstring() const;	
 		FILE_TYPE_E str_to_enum(const std::string& _str);
 	
-	
+
+
+Free functions should be all lowercase and spaced using underscores
+	Examples:
+
+		int add_nums(int _a, int _b);
+		std::string never_lick_lemons();
+
+
+
 
 	
 

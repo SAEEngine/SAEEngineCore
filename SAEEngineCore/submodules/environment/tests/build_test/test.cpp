@@ -16,9 +16,7 @@ constexpr static inline int GOOD_TEST = 0;
 
 #include <SAEEngineCore_Environment.h>
 
-#include <chrono>
-#include <thread>
-
+namespace eng = sae::engine::core;
 
 int main(int argc, char* argv[], char* envp[])
 {

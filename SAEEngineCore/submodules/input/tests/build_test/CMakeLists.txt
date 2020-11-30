@@ -29,7 +29,7 @@ endmacro(new_test_instance)
 ###		./CMakeLists.txt
 ###		./test.cpp
 ###
-define_test(OpenFileTest SAEEngineCore_FileHandling)
-new_test_instance("open_file_test" OpenFileTest)
+### define_test(WindowOpenTest SAEEngineCore_Window)
+### new_test_instance("window_open_test_fullscreen" WindowOpenTest "fullscreen")
 ### new_test_instance("window_open_test_windowed" WindowOpenTest "windowed" 600 400)
 ###
