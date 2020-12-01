@@ -79,15 +79,62 @@ namespace sae::engine::core
 	{
 		this->context_ = _context;
 	};
+
+
 }
 
 namespace sae::engine::core
 {
+	UIBlackboard& GFXContext::blackboard() noexcept { return this->blackboard_; };
+	const UIBlackboard& GFXContext::blackboard() const noexcept { return this->blackboard_; };
+
+	ShaderProgram* GFXContext::get_bound_shader() const noexcept
+	{
+		return this->bound_shader_;
+	};
+	void GFXContext::unbind_shader()
+	{
+		this->bound_shader_ = nullptr;
+	};
+	void GFXContext::bind_shader(ShaderProgram* _shader)
+	{
+		if (this->bound_shader_ != _shader)
+		{
+			this->bound_shader_ = _shader;
+			glUseProgram(_shader->id());
+		};
+	};
+	ShaderProgram* GFXContext::insert_shader(std::unique_ptr<ShaderProgram> _shader)
+	{
+		auto _out = _shader.get();
+		this->shaders_.push_back(std::move(_shader));
+		return _out;
+	};
+
+}
+
+
+
+namespace sae::engine::core
+{
+	bool UIObject::has_parent() const noexcept
+	{
+		return this->parent() != nullptr;
+	};
+	UIObject* UIObject::parent() const noexcept
+	{
+		return this->parent_;
+	};
+	void UIObject::set_parent(UIObject* _parent) noexcept
+	{
+		assert(!this->has_parent() || (_parent == nullptr));
+		this->parent_ = _parent;
+	};
+
 	void UIObject::set_bounds(UIRect _r) noexcept
 	{
 		this->bounds_ = _r;
 	};
-
 	const UIRect& UIObject::bounds() const noexcept
 	{
 		return this->bounds_;
@@ -95,7 +142,6 @@ namespace sae::engine::core
 
 	void UIObject::draw_self()
 	{};
-
 	void UIObject::draw()
 	{
 		this->draw_self();
@@ -110,7 +156,6 @@ namespace sae::engine::core
 	{
 		return this->grow_mode_;
 	};
-
 	const GrowMode& UIObject::grow_mode() const noexcept
 	{
 		return this->grow_mode_;
@@ -144,13 +189,26 @@ namespace sae::engine::core
 		this->set_bounds(_newBounds);
 	};
 
+	ZLayer& UIObject::zlayer() noexcept
+	{
+		return this->zlayer_;
+	};
+
+	const ZLayer& UIObject::zlayer() const noexcept 
+	{ 
+		return this->zlayer_; 
+	};
+
 	UIObject::HANDLE_EVENT_RETURN UIObject::handle_event(const Event& _event)
 	{
 		return IGNORED;
 	};
 
-	UIObject::UIObject(UIRect _r) :
-		bounds_{ _r }
+	UIObject::UIObject(UIRect _r, ZLayer _z) noexcept :
+		bounds_{ _r }, zlayer_{ _z }
+	{};
+	UIObject::UIObject(UIRect _r) noexcept :
+		UIObject{ _r, ZLayer{} }
 	{};
 
 }
@@ -169,8 +227,7 @@ namespace sae::engine::core
 
 	void UIGroup::insert(std::shared_ptr<UIObject> _obj)
 	{
-		_obj->refresh();
-		this->get_container().push_back(std::move(_obj));
+		this->get_container().push_back(_obj);
 	};
 	void UIGroup::remove(UIObject* _obj)
 	{
@@ -211,7 +268,9 @@ namespace sae::engine::core
 	void UIView::insert(std::shared_ptr<UIObject> _obj)
 	{
 		this->add_to_graphics_context(this->context(), _obj.get());
+		_obj->zlayer() = this->zlayer() + 1;
 		UIGroup::insert(_obj);
+		_obj->refresh();
 	};
 
 	void UIView::remove(UIObject* _obj)
@@ -228,6 +287,29 @@ namespace sae::engine::core
 		};
 	};
 
+	bool UIView::initialize()
+	{
+		auto _out = UIObject::initialize();
+		for (auto& o : this->children())
+		{
+			if (!o->initialize())
+			{
+				_out = false;
+				break;
+			};
+		};
+		return _out;
+	};
+
+	void UIView::destroy()
+	{
+		UIObject::destroy();
+		for (auto& o : this->children())
+		{
+			o->destroy();
+		};
+	};
+
 	void UIView::grow(int16_t _dw, int16_t _dh)
 	{
 		UIObject::grow(_dw, _dh);
@@ -235,6 +317,12 @@ namespace sae::engine::core
 		{
 			o->grow(_dw, _dh);
 		};
+	};
+	
+	UIView::UIView(GFXContext* _context, UIRect _r) :
+		UIObject{ _r }
+	{
+		this->add_to_graphics_context(_context, this);
 	};
 
 }
@@ -332,8 +420,8 @@ namespace sae::engine::core
 		return _out;
 	};
 
-	UIButton::UIButton(UIRect _r, const EventResponse& _leftMouse, const EventResponse& _rightMouse) :
-		UIView{ _r }, on_mb1_{ _leftMouse }, on_mb2_{ _rightMouse }
+	UIButton::UIButton(GFXContext* _context, UIRect _r, const EventResponse& _leftMouse, const EventResponse& _rightMouse) :
+		UIView{ _context, _r }, on_mb1_{ _leftMouse }, on_mb2_{ _rightMouse }
 	{};
 
 }
@@ -430,9 +518,9 @@ namespace sae::engine::core
 		return _out;
 	};
 
-	UIPushButton::UIPushButton(	UIRect _r, const EventResponse& _onPush, const EventResponse& _onRelease,
+	UIPushButton::UIPushButton(GFXContext* _context, UIRect _r, const EventResponse& _onPush, const EventResponse& _onRelease,
 								const EventResponse& _onMouseEnter, const EventResponse& _onMouseLeave) :
-		UIView{ _r }, on_push_{ _onPush }, on_release_{ _onRelease }, on_mouse_enter_{ _onMouseEnter }, on_mouse_leave_{ _onMouseLeave }
+		UIView{ _context, _r }, on_push_{ _onPush }, on_release_{ _onRelease }, on_mouse_enter_{ _onMouseEnter }, on_mouse_leave_{ _onMouseLeave }
 	{};
 
 }
@@ -547,11 +635,117 @@ namespace sae::engine::core
 		return _out;
 	};
 
-	UIToggleButton::UIToggleButton(UIRect _r, const EventResponse& _onToggleOn, const EventResponse& _onToggleOff) : 
-		UIView{ _r }, on_toggle_on_{ _onToggleOn }, on_toggle_off_{ _onToggleOff }
+	UIToggleButton::UIToggleButton(GFXContext* _context, UIRect _r, const EventResponse& _onToggleOn, const EventResponse& _onToggleOff) :
+		UIView{ _context, _r }, on_toggle_on_{ _onToggleOn }, on_toggle_off_{ _onToggleOff }
 	{
 		
 	};
+
+}
+
+namespace sae::engine::core
+{
+
+	void UIList::resposition_elements_horizontal()
+	{
+		if (this->child_count() == 0)
+			return;
+
+		int16_t _x = this->bounds().left();
+		int16_t _w = this->bounds().width();
+		
+		int16_t _eachWidth = 0;
+
+		if (this->fit_to_rect_)
+		{
+			_eachWidth = this->fit_to_rect_->width();
+		}
+		else
+		{
+			_eachWidth = (_w - (this->child_count() - 1) * this->margin_) / (this->child_count());
+		};
+		
+		for (auto& o : this->children())
+		{
+			auto _b = o->bounds();
+			_b.left() = _x;
+			_b.right() = _b.left() + _eachWidth;
+			_b.top() = this->bounds().top();
+			_b.bottom() = this->bounds().bottom();
+			o->set_bounds(_b);
+			_x += _eachWidth + this->margin_;
+		};
+
+	};
+	void UIList::resposition_elements_vertical()
+	{
+		if (this->child_count() == 0)
+			return;
+
+		int16_t _y = this->bounds().top();
+		int16_t _h = this->bounds().height();
+
+		int16_t _eachHeight = 0;
+
+		if (this->fit_to_rect_)
+		{
+			_eachHeight = this->fit_to_rect_->height();
+		}
+		else
+		{
+			_eachHeight = (_h - (this->child_count() - 1) * this->margin_) / (this->child_count());
+		};
+
+		for (auto& o : this->children())
+		{
+			auto _b = o->bounds();
+			_b.left() = this->bounds().left();
+			_b.right() = this->bounds().right();
+			_b.top() = _y;
+			_b.bottom() = _y + _eachHeight;
+			o->set_bounds(_b);
+			_y += _eachHeight + this->margin_;
+		};
+
+	};
+
+	void UIList::reposition_elements()
+	{
+		switch (this->axis_)
+		{
+		case POSITION_AXIS::HORIZONTAL:
+			this->resposition_elements_horizontal();
+			break;
+		case POSITION_AXIS::VERTICAL:
+			this->resposition_elements_vertical();
+			break;
+		default:
+			abort();
+			break;
+		};
+	};
+
+	void UIList::insert(std::shared_ptr<UIObject> _ptr)
+	{
+		UIView::insert(_ptr);
+		this->reposition_elements();
+	};
+	void UIList::grow(int16_t _dw, int16_t _dh)
+	{
+		UIView::grow(_dw, _dh);
+	};
+	void UIList::refresh()
+	{
+		UIView::refresh();
+		this->reposition_elements();
+	};
+
+	UIList::UIList(GFXContext* _context, UIRect _r, POSITION_AXIS _axis, int16_t _margin, std::optional<UIRect> _fitToRect) :
+		UIView{ _context, _r }, axis_{ _axis }, margin_{ _margin }, fit_to_rect_{ _fitToRect }
+	{};
+	UIList::UIList(GFXContext* _context, UIRect _r, POSITION_AXIS _axis, std::optional<UIRect> _fitToRect) :
+		UIList{ _context, _r, _axis, 0, _fitToRect }
+	{};
 
 }
 
@@ -588,6 +782,16 @@ namespace sae::engine::core
 			_event.mods = _mods;
 			_ptr->context()->push_event(_event);
 		};
+	};
+	void GFXWindow::glfw_text_callback(GLFWwindow* _window, unsigned _codepoint)
+	{
+		auto _ptr = (GFXWindow*)glfwGetWindowUserPointer(_window);
+		if (_ptr)
+		{
+			Event::evText _event{};
+			_event.codepoint = _codepoint;
+			_ptr->context()->push_event(_event);
+		};	
 	};
 
 	void GFXWindow::glfw_cursor_move_callback(GLFWwindow* _window, double _x, double _y)
@@ -627,6 +831,22 @@ namespace sae::engine::core
 			Event::evWindowResize _event{};
 			_event.width = _width;
 			_event.height = _height;
+
+			auto _wb = _ptr->bounds();
+
+			auto _dw = _event.width - _wb.width();
+			auto _dh = _event.height - _wb.height();
+
+			_ptr->grow(_dw, _dh);
+
+			_wb.right() = _event.width;
+			_wb.bottom() = _event.height;
+
+			_ptr->set_bounds(_wb);
+
+			_ptr->refresh();
+
+			_ptr->make_current();
 			_ptr->context()->push_event(_event);
 		};
 	};
@@ -648,7 +868,7 @@ namespace sae::engine::core
 		GFXWindow::glfw_framebuffer_resize_callback(_window, _w, _h);
 	};
 
-
+	
 
 	void GFXWindow::grow(int16_t _dw, int16_t _dh)
 	{
@@ -665,7 +885,7 @@ namespace sae::engine::core
 
 	void GFXWindow::refresh()
 	{
-		this->glfw_window_refresh_callback(this->get());
+		UIView::refresh();
 	};
 
 	GFXWindow::HANDLE_EVENT_RETURN GFXWindow::handle_event(const Event& _event)
@@ -678,17 +898,21 @@ namespace sae::engine::core
 		};
 		return _out;
 	};
+	
+	GLFWwindow* GFXWindow::get_window() const noexcept
+	{
+		return this->get();
+	};
 
 	GFXWindow::GFXWindow(ScreenPoint::pixels_t _width, ScreenPoint::pixels_t _height, const std::string& _title) : 
 		Window{ glfwCreateWindow(_width, _height, _title.c_str(), NULL, NULL) }, 
-		UIView{ UIRect{ { 0, 0 }, { _width, _height } } }
+		UIView{ this, UIRect{ { 0, 0 }, { _width, _height } } }
 	{
-		this->add_to_context(this);
-
 		glfwSetWindowUserPointer(this->get(), this);
 		glfwSetMouseButtonCallback(this->get(), &GFXWindow::glfw_mouse_button_callback );
 
 		glfwSetKeyCallback(this->get(), &GFXWindow::glfw_key_callback);
+		glfwSetCharCallback(this->get(), &GFXWindow::glfw_text_callback);
 
 		glfwSetCursorPosCallback(this->get(), &GFXWindow::glfw_cursor_move_callback );
 		glfwSetCursorEnterCallback(this->get(), &GFXWindow::glfw_cursor_enter_callback );

@@ -80,8 +80,17 @@ namespace sae::engine::core
 		using evScroll = EventType<EVENT_TYPE_E::SCROLL_EVENT>;
 
 		template <>
+		struct EventType<EVENT_TYPE_E::TEXT_EVENT>
+		{
+			unsigned codepoint = 0;
+		};
+		using evText = EventType<EVENT_TYPE_E::TEXT_EVENT>;
+
+		template <>
 		struct EventType<EVENT_TYPE_E::USER_EVENT>
 		{
+			constexpr auto operator<=>(const EventType<EVENT_TYPE_E::USER_EVENT>&) const noexcept = default;
+			constexpr operator int() const noexcept { return this->ev; };
 			int ev = 0;
 		};
 		using evUser = EventType<EVENT_TYPE_E::USER_EVENT>;
@@ -111,6 +120,7 @@ namespace sae::engine::core
 			EventType<EVENT_TYPE_E::MOUSE_EVENT>,
 			EventType<EVENT_TYPE_E::KEY_EVENT>,
 			EventType<EVENT_TYPE_E::SCROLL_EVENT>,
+			EventType<EVENT_TYPE_E::TEXT_EVENT>,
 			EventType<EVENT_TYPE_E::USER_EVENT>,
 			EventType<EVENT_TYPE_E::WINDOW_RESIZE>,
 			EventType<EVENT_TYPE_E::WINDOW_CLOSE>

@@ -46,6 +46,7 @@ set(source_dirs
 set(link_libs_public 
 	SAEEngineCore_Config
 	SAEEngineCore_FileHandling
+	SAEEngineCore_Environment
 )
 
 ### Add libary targets to link to below, these will be private
