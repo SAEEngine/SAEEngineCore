@@ -47,6 +47,7 @@ set(link_libs_public
 	SAEEngineCore_Config
 	SAEEngineCore_Environment
 	SAEEngineCore_Event
+	SAEEngineCore_Shader
 	glm
 )
 

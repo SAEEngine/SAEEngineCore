@@ -2,6 +2,7 @@
 #ifndef SAE_ENGINE_CORE_OBJECT_H
 #define SAE_ENGINE_CORE_OBJECT_H
 
+#include <SAEEngineCore_Shader.h>
 #include <SAEEngineCore_Environment.h>
 #include <SAEEngineCore_Event.h>
 
@@ -18,6 +19,7 @@
 #include <string>
 #include <unordered_map>
 #include <tuple>
+#include <numeric>
 
 namespace sae::engine::core
 {
@@ -125,6 +127,16 @@ namespace sae::engine::core
 			return (this->left() <= _p.x && _p.x < this->right() && this->top() <= _p.y && _p.y < this->bottom());
 		};
 
+		/**
+		 * @brief Returns the position of the center of the rectangle
+		 * @return ScreenPoint (pair of positions in pixels)
+		*/
+		constexpr ScreenPoint find_center() const noexcept
+		{
+			return ScreenPoint{ std::midpoint(this->left(), this->right()), std::midpoint(this->top(), this->bottom()) };
+		};
+
+
 	};
 
 
@@ -136,11 +148,13 @@ namespace sae::engine::core
 	*/
 	union ColorR_8
 	{
+		using value_type = uint8_t;
+		constexpr static inline size_t count = 4;
 		struct
 		{
 			uint8_t r;
 		};
-		uint8_t col[1]{};
+		uint8_t col[count]{};
 	};
 
 	/**
@@ -148,13 +162,15 @@ namespace sae::engine::core
 	*/
 	union ColorRGB_8
 	{
+		using value_type = uint8_t;
+		constexpr static inline size_t count = 3;
 		struct
 		{
 			uint8_t r;
 			uint8_t g;
 			uint8_t b;
 		};
-		uint8_t col[3]{};
+		uint8_t col[count]{};
 	};
 
 	/**
@@ -162,6 +178,8 @@ namespace sae::engine::core
 	*/
 	union ColorRGBA_8
 	{
+		using value_type = uint8_t;
+		constexpr static inline size_t count = 4;
 		struct
 		{
 			uint8_t r;
@@ -169,7 +187,7 @@ namespace sae::engine::core
 			uint8_t b;
 			uint8_t a;
 		};
-		uint8_t col[4]{};
+		uint8_t col[count]{};
 	};
 
 
@@ -395,9 +413,15 @@ namespace sae::engine::core
 	public:
 		virtual void push_event(const Event& _ev) = 0;
 
-		UIBlackboard& blackboard() noexcept { return this->blackboard_; };
-		const UIBlackboard& blackboard() const noexcept { return this->blackboard_; };
+		UIBlackboard& blackboard() noexcept;
+		const UIBlackboard& blackboard() const noexcept;
 
+		ShaderProgram* get_bound_shader() const noexcept;
+		void unbind_shader();
+		void bind_shader(ShaderProgram* _shader);
+		ShaderProgram* insert_shader(std::unique_ptr<ShaderProgram> _shader);
+
+		virtual GLFWwindow* get_window() const noexcept = 0;
 
 	protected:
 		friend UIGroup;
@@ -411,7 +435,8 @@ namespace sae::engine::core
 
 	private:
 		UIBlackboard blackboard_{};
-
+		ShaderProgram* bound_shader_ = nullptr;
+		std::vector<std::unique_ptr<ShaderProgram>> shaders_{};
 	};
 
 	/**
@@ -497,6 +522,98 @@ namespace sae::engine::core
 
 	};
 
+	template <typename T>
+	concept cx_arithmetic = std::is_arithmetic_v<T>;
+
+	/**
+	 * @brief Type to wrap up a Z position. Higher value is always closer to the front.
+	*/
+	class ZLayer
+	{
+	public:
+		using value_type = uint16_t;
+		
+	protected:
+		template <std::floating_point T>
+		constexpr static value_type fpoint_to_zlayer(T _v) noexcept
+		{
+			return (value_type)(std::clamp(_v, (T)0, std::numeric_limits<T>::max()) * (T)std::numeric_limits<value_type>::max());
+		};
+		template <std::floating_point T>
+		constexpr static T zlayer_to_fpoint(value_type _v) noexcept
+		{
+			return (T)_v / (T)std::numeric_limits<value_type>::max();
+		};
+
+	public:
+		/**
+		 * @brief Returns the actual internal z layer value 
+		*/
+		constexpr value_type layer() const noexcept { return this->z_; };
+		constexpr explicit operator value_type() const noexcept { return this->layer(); };
+
+		/**
+		 * @brief Converts the z value to a floating point number. This is always >= 0.0f
+		 * @tparam T floating point type
+		 * @return The converted floating point value
+		*/
+		template <std::floating_point T = float_t>
+		constexpr T to_fpoint() const noexcept { return zlayer_to_fpoint<T>(this->layer()); };
+		template <std::floating_point T = float_t>
+		explicit constexpr operator T() const noexcept { return this->to_fpoint<T>(); };
+
+		constexpr auto operator<=>(const ZLayer&) const noexcept = default;
+		
+		template <cx_arithmetic T>
+		constexpr bool operator<=>(T _rhs) const noexcept
+		{
+			return this->layer() <=> (value_type)_rhs;
+		};
+		template <std::floating_point T>
+		constexpr bool operator<=>(T _rhs) const noexcept
+		{
+			return this->layer() <=> this->fpoint_to_zlayer(_rhs);
+		};
+
+		constexpr ZLayer operator+(value_type _i) const noexcept { return ZLayer{ (value_type)(this->layer() + _i) }; };
+		ZLayer& operator+=(value_type _i) noexcept
+		{ 
+			return this->operator=(this->layer() + _i);
+		};
+
+		constexpr ZLayer operator-(value_type _i) const noexcept { return ZLayer{ (value_type)(this->layer() - _i) }; };
+		ZLayer& operator-=(value_type _i) noexcept
+		{
+			return this->operator=(this->layer() - _i);
+		};
+
+		constexpr ZLayer() = default;
+
+		constexpr ZLayer(value_type _z) noexcept :
+			z_{ _z }
+		{};
+		template <std::floating_point T>
+		constexpr ZLayer(T _zfloat) noexcept :
+			z_{ fpoint_to_zlayer(_zfloat) }
+		{};
+
+		ZLayer& operator=(value_type _z) noexcept
+		{
+			this->z_ = _z;
+			return *this;
+		};
+		template <std::floating_point T>
+		ZLayer& operator=(T _z) noexcept
+		{
+			this->z_ = fpoint_to_zlayer(_z);
+			return *this;
+		};
+
+	private:
+		value_type z_ = 0;
+		
+	};
+
 
 
 	/**
@@ -504,7 +621,24 @@ namespace sae::engine::core
 	*/
 	class UIObject : public GFXBase
 	{
+	protected:
+		/**
+		 * @brief Returns true if the parent pointer is set 
+		*/
+		bool has_parent() const noexcept;
+
+		/**
+		 * @brief Returns a pointer to the parent element, will be nullptr if there isn't one 
+		*/
+		UIObject* parent() const noexcept;
+
+		/**
+		 * @brief Sets the parent pointer
+		*/
+		void set_parent(UIObject* _parent) noexcept;
+
 	public:
+
 		/**
 		 * @brief Sets the bounds for the object
 		 * @param _r UIRect defining the region
@@ -537,10 +671,21 @@ namespace sae::engine::core
 		*/
 		const GrowMode& grow_mode() const noexcept;
 
+		/**
+		 * @brief Grows the object by the provided amount
+		 * @param _dw Change in width
+		 * @param _dh Change in height
+		*/
 		virtual void grow(int16_t _dw, int16_t _dh);
 
-
+		/**
+		 * @brief Refreshes the object. Any changes applied after the last call to refresh() will be applied and draw() should show them.
+		*/
 		virtual void refresh() {};
+
+		virtual bool initialize() { return true; };
+
+		virtual void destroy() {};
 
 	private:
 		static inline ColorSet<ColorRGBA_8> EMPTY_PALLETE{};
@@ -567,15 +712,24 @@ namespace sae::engine::core
 		*/
 		virtual HANDLE_EVENT_RETURN handle_event(const Event& _event);
 
-		UIObject(UIRect _r);
+		ZLayer& zlayer() noexcept;
+
+		const ZLayer& zlayer() const noexcept;
+
+
+
+
+		UIObject(UIRect _r, ZLayer _z) noexcept;
+		UIObject(UIRect _r) noexcept;
+
 		virtual ~UIObject() = default;
 
 	private:
-
 		GrowMode grow_mode_{};
 		GFXContext* context_ = nullptr;
+		UIObject* parent_ = nullptr;
 		UIRect bounds_{};
-		float_t z_ = 0.0f;
+		ZLayer zlayer_{};
 
 	};
 
@@ -666,6 +820,10 @@ namespace sae::engine::core
 
 		void refresh() override;
 
+		bool initialize() override;
+
+		void destroy() override;
+
 		/**
 		 * @brief Passes the event down to children until one of them handles it
 		 * @param _ev Event to handle
@@ -673,9 +831,7 @@ namespace sae::engine::core
 		*/
 		HANDLE_EVENT_RETURN handle_event(const Event& _ev) override;
 
-		UIView(UIRect _r) :
-			UIObject{ _r }
-		{};
+		UIView(GFXContext* _context, UIRect _r);
 
 	};
 
@@ -697,7 +853,7 @@ namespace sae::engine::core
 
 		HANDLE_EVENT_RETURN handle_event(const Event& _event) override;
 
-		UIButton(UIRect _r, const EventResponse& _onMouse1, const EventResponse& _onMouse2);
+		UIButton(GFXContext* _context, UIRect _r, const EventResponse& _onMouse1, const EventResponse& _onMouse2);
 
 	};
 
@@ -743,7 +899,7 @@ namespace sae::engine::core
 
 		HANDLE_EVENT_RETURN handle_event(const Event& _event) override;
 
-		UIPushButton(	UIRect _r, const EventResponse& _onPush, const EventResponse& _onRelease, 
+		UIPushButton(	GFXContext* _context, UIRect _r, const EventResponse& _onPush, const EventResponse& _onRelease,
 						const EventResponse& _onMouseEnter, const EventResponse& _onMouseLeave	);
 
 	};
@@ -794,7 +950,7 @@ namespace sae::engine::core
 
 		HANDLE_EVENT_RETURN handle_event(const Event& _event) override;
 
-		UIToggleButton(UIRect _r, const EventResponse& _onToggleOn, const EventResponse& _onToggleOff);
+		UIToggleButton(GFXContext* _context, UIRect _r, const EventResponse& _onToggleOn, const EventResponse& _onToggleOff);
 
 	protected:
 		std::string bb_key_{};
@@ -803,7 +959,37 @@ namespace sae::engine::core
 
 
 
+	struct UIList : public UIView
+	{
+	public:
+		enum POSITION_AXIS
+		{
+			HORIZONTAL,
+			VERTICAL
+		};
+		
+	private:
+		void resposition_elements_horizontal();
+		void resposition_elements_vertical();
 
+		void reposition_elements();
+
+		int16_t margin_ = 5;
+		std::optional<UIRect> fit_to_rect_{ std::nullopt };
+		POSITION_AXIS axis_ = POSITION_AXIS::HORIZONTAL;
+
+	public:
+		void insert(std::shared_ptr<UIObject> _ptr);
+		void grow(int16_t _dw, int16_t _dh) override;
+		void refresh() override;
+
+
+
+		UIList(GFXContext* _context, UIRect _r, POSITION_AXIS _axis, int16_t _margin, std::optional<UIRect> _fitToRect = std::nullopt);
+		UIList(GFXContext* _context, UIRect _r, POSITION_AXIS _axis, std::optional<UIRect> _fitToRect = std::nullopt);
+		
+
+	};
 
 
 	class GFXWindow : public UIView, public Window, public GFXContext
@@ -812,6 +998,7 @@ namespace sae::engine::core
 		static void glfw_mouse_button_callback(GLFWwindow* _window, int _button, int _action, int _mods);
 
 		static void glfw_key_callback(GLFWwindow* _window, int _key, int _scancode, int _action, int _modss);
+		static void glfw_text_callback(GLFWwindow* _window, unsigned _codepoint);
 
 		static void glfw_cursor_move_callback(GLFWwindow* _window, double _x, double _y);
 		static void glfw_cursor_enter_callback(GLFWwindow* _window, int _entered);
@@ -835,6 +1022,8 @@ namespace sae::engine::core
 		void push_event(const Event& _event) override { this->handle_event(_event); };
 
 		void grow(int16_t _dw, int16_t _dh) override;
+
+		GLFWwindow* get_window() const noexcept final;
 
 		/**
 		 * @brief Opens a new window of size (_width, _height) with title _title
