@@ -17,12 +17,10 @@ namespace sae::engine::core
 		};
 		return this->good();
 	};
-
 	bool GLFWLib::good() const noexcept
 	{
 		return this->good_;
 	};
-
 	void GLFWLib::destroy()
 	{
 		if (this->good())
@@ -30,6 +28,10 @@ namespace sae::engine::core
 			glfwTerminate();
 			this->good_ = false;
 		};
+	};
+	void GLFWLib::poll_events()
+	{
+		glfwPollEvents();
 	};
 
 	GLFWLib::GLFWLib()
@@ -95,6 +97,34 @@ namespace sae::engine::core
 		{
 			glfwDestroyWindow(this->ptr_);
 			this->ptr_ = nullptr;
+		};
+	};
+
+	bool Window::is_current() const
+	{
+		return (this->good() && glfwGetCurrentContext() == this->get());
+	};
+
+	void Window::make_current()
+	{
+		if (!this->is_current())
+		{
+			glfwMakeContextCurrent(this->get());
+		};
+	};
+
+	void Window::swap_buffers()
+	{
+		glfwSwapBuffers(this->get());
+	};
+
+	Window::Window(pointer _ptr) :
+		ptr_{ _ptr }
+	{
+		if (glfwGetCurrentContext() == NULL)
+		{
+			glfwMakeContextCurrent(this->get());
+			gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
 		};
 	};
 

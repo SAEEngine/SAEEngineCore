@@ -18,6 +18,8 @@ if(SAE_ENGINE_CORE_USE_EXCEPTIONS)
 	)
 endif()
 
+set(${PROJECT_NAME}_SOURCE_ROOT "${CMAKE_CURRENT_LIST_DIR}")
+
 add_subdirectory("lib")
 add_subdirectory("SAEEngineCore")
 

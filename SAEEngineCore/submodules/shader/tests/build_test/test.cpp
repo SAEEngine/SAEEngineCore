@@ -14,12 +14,17 @@ constexpr static inline int GOOD_TEST = 0;
 
 // Include the headers you need for testing here
 
-#include <SAEEngineCore_Window.h>
 
-namespace eng = sae::engine::core;
+
 
 
 int main(int argc, char* argv[], char* envp[])
 {
-	return GOOD_TEST;	
+
+
+
+
+
+
+	return GOOD_TEST;
 };

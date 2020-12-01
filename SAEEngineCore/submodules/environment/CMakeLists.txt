@@ -46,6 +46,7 @@ set(source_dirs
 set(link_libs_public 
 	SAEEngineCore_Config
 	glfw
+	glad
 )
 
 ### Add libary targets to link to below, these will be private
@@ -57,7 +58,6 @@ set(link_libs_public
 ###		)
 ###
 set(link_libs_private
-	
 )
 
 ##

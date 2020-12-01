@@ -7,10 +7,10 @@ cmake_minimum_required (VERSION 3.8)
 ### I added names to the fields below to make it easier to use
 ###
 project(  
-	SAEEngineCore_Event
+	SAEEngineCore_glObject
 	LANGUAGES CXX
 	VERSION 0.0.1
-	DESCRIPTION "Event handling for the core engine library"
+	DESCRIPTION "Wrapping of opengl functionality to ease the pain of writing graphical types"
 	HOMEPAGE_URL "https://github.com/SAEEngine/SAEEngineCore"
 )
 
@@ -45,7 +45,8 @@ set(source_dirs
 ###
 set(link_libs_public 
 	SAEEngineCore_Config
-	SAELib
+	SAEEngineCore_Object
+	SAEEngineCore_Shader
 )
 
 ### Add libary targets to link to below, these will be private
@@ -57,7 +58,7 @@ set(link_libs_public
 ###		)
 ###
 set(link_libs_private
-	SAEEngineCore_Logging
+	
 )
 
 ##
@@ -66,7 +67,7 @@ set(link_libs_private
 
 ## Define the source files variable
 set(src_files 
-	"include/${PROJECT_NAME}Type.h"
+
 )
 
 ## Add the source files
@@ -92,14 +93,6 @@ target_compile_definitions(${PROJECT_NAME}
 	PUBLIC ${PROJECT_NAME}_VERSION_MAJOR="${PROJECT_VERSION_MINOR}"
 	PUBLIC ${PROJECT_NAME}_VERSION_PATCH="${PROJECT_VERSION_PATCH}"
 )
-
-## Add command to generate the event type enumerator
-add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD COMMAND "${SAEEngineCore_SOURCE_ROOT}/tools/strenum.exe" ARGS 
-	"-i" "${CMAKE_CURRENT_LIST_DIR}/source/event_enum.txt" 
-	"-o" "${CMAKE_CURRENT_LIST_DIR}/include/${PROJECT_NAME}Type.h" 
-	"-n" "EVENT_TYPE"
-	"-s" "sae::engine::core"
-	BYPRODUCTS "${CMAKE_CURRENT_LIST_DIR}/include/${PROJECT_NAME}Type.h")
 
 ## Add the source directories
 foreach(subdir IN ${source_dirs})
