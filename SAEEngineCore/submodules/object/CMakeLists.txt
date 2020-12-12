@@ -45,10 +45,9 @@ set(source_dirs
 ###
 set(link_libs_public 
 	SAEEngineCore_Config
-	SAEEngineCore_Environment
 	SAEEngineCore_Event
-	SAEEngineCore_Shader
-	glm
+	SAEEngineCore_Artist
+	SAEEngineCore_Widget
 )
 
 ### Add libary targets to link to below, these will be private
@@ -60,8 +59,6 @@ set(link_libs_public
 ###		)
 ###
 set(link_libs_private
-	SAEEngineCore_Logging
-	SAEEngineCore_Input
 )
 
 ##

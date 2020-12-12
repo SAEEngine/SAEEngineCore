@@ -36,7 +36,6 @@ namespace sae::engine::core
 
 	};
 
-
 	namespace gl
 	{
 		enum class BUFFER_MODE : GLenum
@@ -67,47 +66,47 @@ namespace sae::engine::core
 			template <typename T>
 			struct gl_type;
 
-			template <> 
+			template <>
 			struct gl_type<float_t>
-			{ 
-				constexpr static inline TYPE _type = TYPE::FLOAT; 
-			};
-			template <> 
-			struct gl_type<double_t> 
 			{
-				constexpr static inline TYPE _type = TYPE::DOUBLE; 
+				constexpr static inline TYPE _type = TYPE::FLOAT;
+			};
+			template <>
+			struct gl_type<double_t>
+			{
+				constexpr static inline TYPE _type = TYPE::DOUBLE;
 			};
 
-			template <> 
-			struct gl_type<int32_t> 
-			{ 
-				constexpr static inline TYPE type = TYPE::INT; 
+			template <>
+			struct gl_type<int32_t>
+			{
+				constexpr static inline TYPE type = TYPE::INT;
 			};
-			template <> 
-			struct gl_type<int16_t> 
-			{ 
-				constexpr static inline TYPE type = TYPE::SHORT; 
+			template <>
+			struct gl_type<int16_t>
+			{
+				constexpr static inline TYPE type = TYPE::SHORT;
 			};
-			template <> 
-			struct gl_type<int8_t> 
-			{ 
-				constexpr static inline TYPE type = TYPE::BYTE; 
+			template <>
+			struct gl_type<int8_t>
+			{
+				constexpr static inline TYPE type = TYPE::BYTE;
 			};
 
-			template <> 
-			struct gl_type<uint32_t> 
+			template <>
+			struct gl_type<uint32_t>
 			{
-				constexpr static inline TYPE type = TYPE::UNSIGNED; 
+				constexpr static inline TYPE type = TYPE::UNSIGNED;
 			};
-			template <> 
-			struct gl_type<uint16_t> 
-			{ 
-				constexpr static inline TYPE type = TYPE::UNSIGNED_SHORT; 
+			template <>
+			struct gl_type<uint16_t>
+			{
+				constexpr static inline TYPE type = TYPE::UNSIGNED_SHORT;
 			};
-			template <> 
+			template <>
 			struct gl_type<uint8_t>
-			{ 
-				constexpr static inline TYPE type = TYPE::UNSIGNED_BYTE; 
+			{
+				constexpr static inline TYPE type = TYPE::UNSIGNED_BYTE;
 			};
 
 		};
@@ -134,41 +133,78 @@ namespace sae::engine::core
 	public:
 		using value_type = std::size_t;
 		constexpr value_type count() const noexcept { return this->count_; };
-		constexpr auto operator<=>(const Bytes&) const noexcept = default;
 		
-		constexpr Bytes operator+(const Bytes& _rhs) const noexcept 
+		constexpr auto operator<=>(const Bytes&) const noexcept = default;
+
+
+		constexpr Bytes operator+(const Bytes& _rhs) const noexcept
 		{
 			return Bytes{ this->count() + _rhs.count() };
+		};
+		constexpr Bytes operator+(const value_type& _rhs) const noexcept
+		{
+			return Bytes{ this->count() + _rhs };
 		};
 		Bytes& operator+=(const Bytes& _rhs) noexcept
 		{
 			this->count_ += _rhs.count();
 			return *this;
 		};
-				
+		Bytes& operator+=(const value_type& _rhs) noexcept
+		{
+			this->count_ += _rhs;
+			return *this;
+		};
+
 		constexpr Bytes operator-(const Bytes& _rhs) const noexcept
 		{
 			return Bytes{ this->count() - _rhs.count() };
+		};
+		constexpr Bytes operator-(const value_type& _rhs) const noexcept
+		{
+			return Bytes{ (value_type)(this->count() - _rhs) };
 		};
 		Bytes& operator-=(const Bytes& _rhs) noexcept
 		{
 			this->count_ -= _rhs.count();
 			return *this;
 		};
-		
+		Bytes& operator-=(const value_type& _rhs) noexcept
+		{
+			this->count_ -= _rhs;
+			return *this;
+		};
+
 		constexpr Bytes operator*(const Bytes& _rhs) const noexcept
 		{
 			return Bytes{ this->count() * _rhs.count() };
 		};
+		constexpr Bytes operator*(const value_type& _rhs) const noexcept
+		{
+			return Bytes{ (value_type)(this->count() * _rhs) };
+		};
+
 		constexpr Bytes operator/(const Bytes& _rhs) const noexcept
 		{
 			return Bytes{ this->count() / _rhs.count() };
 		};
+		constexpr Bytes operator/(const value_type& _rhs) const noexcept
+		{
+			return Bytes{ (value_type)(this->count() / _rhs) };
+		};
+
+
 
 
 		constexpr explicit Bytes(value_type _count) noexcept :
-			count_{ _count } 
+			count_{ _count }
 		{};
+		Bytes& operator=(value_type _count) noexcept
+		{
+			this->count_ = _count;
+			return *this;
+		};
+
 
 	private:
 		value_type count_ = 0;
@@ -201,7 +237,7 @@ namespace sae::engine::core
 		{
 			this->bind(BUFFER_TARGET);
 		};
-		
+
 		void unbind(GLenum _target) const noexcept
 		{
 			glBindBuffer(_target, 0);
@@ -251,7 +287,6 @@ namespace sae::engine::core
 			{
 				this->bind();
 				glBufferData(BUFFER_TARGET, _bytes.count(), NULL, GL_STATIC_DRAW);
-				this->unbind();
 			};
 
 			if (_bytes < this->size())
@@ -285,7 +320,10 @@ namespace sae::engine::core
 			};
 			this->bind(_target);
 			glBufferSubData(_target, _offset.count(), _bytes.count(), _dataIn);
-			this->unbind(_target);
+			if (_offset + _bytes > this->size())
+			{
+				this->size_ = _offset + _bytes;
+			};
 		};
 
 		/**
@@ -306,16 +344,27 @@ namespace sae::engine::core
 		*/
 		void erase(Bytes _offset, Bytes _bytes)
 		{
-			this->bind(GL_COPY_READ_BUFFER);
-			this->bind(GL_COPY_WRITE_BUFFER);
-
 			auto _rangeEnd = _offset + _bytes;
-			assert(_rangeEnd < this->size());
+			assert(_rangeEnd <= this->size());
+
+			GLuint _bid = 0;
+			glGenBuffers(1, &_bid);
+			glBindBuffer(GL_COPY_WRITE_BUFFER, _bid);
+			glBufferData(GL_COPY_WRITE_BUFFER, this->size().count(), NULL, GL_STATIC_DRAW);
+			this->bind(GL_COPY_READ_BUFFER);
+
+			glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER, 0, 0, this->size().count());
 			glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER, _rangeEnd.count(), _offset.count(), (this->size() - _rangeEnd).count());
 			this->size_ = this->size() - _bytes;
 
-			this->unbind(GL_COPY_READ_BUFFER);
+			glBindBuffer(GL_COPY_READ_BUFFER, _bid);
+			this->bind(GL_COPY_WRITE_BUFFER);
+			glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER, 0, 0, this->size().count());
+			
+			glDeleteBuffers(1, &_bid);
+
 			this->unbind(GL_COPY_WRITE_BUFFER);
+			
 		};
 
 		void append(const void* _dataIn, Bytes _bytes, GLenum _target = BUFFER_TARGET)
@@ -323,11 +372,16 @@ namespace sae::engine::core
 			this->overwrite(this->size(), _dataIn, _bytes, _target);
 		};
 
-		VBO() :
+		explicit VBO(Bytes _reserveCount) :
 			id_{ 0 }
 		{
 			this->init();
+			this->reserve(_reserveCount);
 		};
+
+		VBO() :
+			VBO{ Bytes{ 0 } }
+		{};
 
 		VBO(const VBO& other) = delete;
 		VBO& operator=(const VBO& other) = delete;
@@ -359,7 +413,7 @@ namespace sae::engine::core
 	/**
 	 * WARNING : type is soon to be removed
 	 * @brief Wrapping type for an opengl Vertex Buffer Object that mainly uses GL_ARRAY_BUFFER, best used with a single data type
-	 * @tparam T 
+	 * @tparam T
 	*/
 	template <typename T>
 	class glArrayBuffer
@@ -372,16 +426,16 @@ namespace sae::engine::core
 		using const_reference = const value_type&;
 		using size_type = std::size_t;
 
-		GLuint id() const noexcept 
-		{ 
+		GLuint id() const noexcept
+		{
 			return this->id_;
 		};
 
-		bool good() const noexcept 
-		{ 
+		bool good() const noexcept
+		{
 			return this->id() != 0;
 		};
-		
+
 		void init() noexcept
 		{
 			glGenBuffers(1, &this->id_);
@@ -413,19 +467,19 @@ namespace sae::engine::core
 		void reserve(size_type _count)
 		{
 			GLuint _cbuff = 0;
-			
+
 			glGenBuffers(1, &_cbuff);
-			
+
 			glBindBuffer(GL_COPY_WRITE_BUFFER, _cbuff);
 			glBufferData(GL_COPY_WRITE_BUFFER, _count * sizeof(value_type), NULL, GL_STATIC_DRAW);
-			
+
 			glBindBuffer(GL_COPY_READ_BUFFER, this->id());
-			
+
 			glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER, 0, 0, std::min(_count * sizeof(value_type), this->capacity() * sizeof(value_type)));
-			
+
 			glBindBuffer(GL_COPY_WRITE_BUFFER, 0);
 			glBindBuffer(GL_COPY_READ_BUFFER, 0);
-			
+
 			glDeleteBuffers(1, &this->id_);
 
 			this->id_ = _cbuff;
@@ -495,7 +549,7 @@ namespace sae::engine::core
 		glArrayBuffer(const glArrayBuffer& other) = delete;
 		glArrayBuffer& operator=(const glArrayBuffer& other) = delete;
 
-		glArrayBuffer(glArrayBuffer&& other) noexcept : 
+		glArrayBuffer(glArrayBuffer&& other) noexcept :
 			id_{ std::exchange(other.id_, 0) },
 			size_{ other.size() }, capacity_{ other.capacity() }
 		{};
@@ -527,10 +581,10 @@ namespace sae::engine::core
 	{
 	public:
 		const GLuint& id() const noexcept { return this->id_; };
-		
+
 		bool good() const noexcept { return this->id() != 0; };
 
-		void init() 
+		void init()
 		{
 			glGenVertexArrays(1, &this->id_);
 			this->bind();
@@ -579,73 +633,228 @@ namespace sae::engine::core
 	};
 
 
-	
 
 
 
+#if false
 
-	
+	class glWidgetArtist;
 
-	template <typename T>
-	class Artist
+	class glWidget : public UIObject
 	{
 	public:
-		using art_type = T;
+		using color_type = ColorRGBA_8;
+		using artist_type = glWidgetArtist;
 
-		using value_type = art_type;
-		using pointer = value_type*;
+	private:
+		artist_type* get_artist() const noexcept
+		{
+			return this->artist_;
+		};
 
-		using size_type = uint32_t;
+		bool on_initialize();
+		void on_destroy();
 
 	public:
-		void insert(pointer _ptr)
+		bool initialize() override
 		{
-
-		};
-		void remove(pointer _ptr)
-		{
-
+			return this->on_initialize();
 		};
 
-		Artist();
+		void refresh() override;
+
+		void destroy() override
+		{
+			this->on_destroy();
+		};
+
+		color_type get_color() const noexcept 
+		{
+			return this->color_; 
+		};
+
+		void set_color(color_type _col) noexcept 
+		{
+			this->color_ = _col; 
+		};
+
+		glWidget(artist_type* _artist, UIRect _r, color_type _col) : 
+			UIObject{ _r }, artist_{ _artist }, color_{ _col }
+		{
+			assert(_artist);
+			auto _res = this->on_initialize();
+			assert(_res);
+		};
+		glWidget(artist_type* _artist, UIRect _r) : 
+			glWidget{ _artist, _r, {} }
+		{};
+		~glWidget()
+		{
+			this->on_destroy();
+		};
+
+	private:
+		friend artist_type;
+		artist_type* artist_ = nullptr;
+		std::optional<uint16_t> art_id_ = std::nullopt;
+		color_type color_;
+
+	};
+
+	class glWidgetArtist : public GFXObject
+	{
+	public:
+		using art_type = glWidget;
+		using color_type = ColorRGBA_8;
+		using shader_type = ShaderProgram;
+
+	private:
+		bool on_initialize()
+		{
+			if (!this->vao_.good())
+			{
+				this->vao_.init();
+			};
+			this->vao_.bind();
+
+			if (!this->vbo_.good())
+			{
+				this->vbo_.init();
+			};
+			this->vbo_.bind();
+		};
+		void on_destroy()
+		{
+			this->vbo_.destroy();
+			this->vao_.destroy();
+		};
+
+		void write_vertex(uint16_t _vert, float_t _x, float_t _y, float_t _z, color_type _color)
+		{
+			float_t _pos[3]{ _x, _y, _z };
+			this->vbo_.overwrite(Bytes{ (size_t)(_vert * 16) }, _pos, Bytes{ sizeof(_pos) });
+			this->vbo_.overwrite(Bytes{ (size_t)((_vert * 16) + 12) }, _color.col, Bytes{ sizeof(_color) });
+		};
+		void write_art(uint16_t _vertOffset, art_type* _art)
+		{
+			auto _l = (float_t)_art->bounds().left();
+			auto _t = (float_t)_art->bounds().top();
+			auto _r = (float_t)_art->bounds().right();
+			auto _b = (float_t)_art->bounds().bottom();
+			auto _z = (float_t)_art->zlayer();
+			auto _col = _art->get_color();
+
+			this->write_vertex(_vertOffset++, _l, _b, _z, _col);
+			this->write_vertex(_vertOffset++, _l, _t, _z, _col);
+			this->write_vertex(_vertOffset++, _r, _t, _z, _col);
+
+			this->write_vertex(_vertOffset++, _l, _b, _z, _col);
+			this->write_vertex(_vertOffset++, _r, _t, _z, _col);
+			this->write_vertex(_vertOffset++, _r, _b, _z, _col);
+		};
+
+	protected:
+		void draw_arrays()
+		{
+			this->vao_.bind();
+			glDrawArrays(GL_TRIANGLES, 0, this->vcount_);
+			this->vao_.unbind();
+		};
+
+	public:
+
+		shader_type* get_shader() const noexcept { return this->shader_; };
+		void set_shader(shader_type* _shader) noexcept { this->shader_ = _shader; };
+
+		bool initialize() override
+		{
+			return this->on_initialize();
+		};
+
+		virtual void insert(art_type* _art)
+		{
+			assert(_art);
+			assert(!_art->art_id_);
+			assert(_art->get_artist() == this);
+
+			_art->art_id_ = this->art_count_;
+			this->offsets_.insert_or_assign(this->art_count_, this->vcount_);
+			this->write_art(this->vcount_, _art);
+
+			this->vcount_ += 6;
+			++this->art_count_;
+		};
+
+		virtual void remove(art_type* _art)
+		{
+			assert(_art);
+			assert(_art->art_id_);
+			assert(_art->get_artist() == this);
+			assert(this->offsets_.contains(*_art->art_id_));
+
+			auto _vpos = this->offsets_.at(*_art->art_id_);
+			this->vbo_.erase(Bytes{ (size_t)(_vpos * 16) }, Bytes{ 16 });
+			for (auto& o : this->offsets_)
+			{
+				if (o.second > _vpos)
+				{
+					o.second -= 6;
+				};
+			};
+			this->vcount_ -= 6;
+			_art->art_id_ = std::nullopt;
+		};
+
+		virtual void refresh(art_type* _art)
+		{
+			assert(_art);
+			assert(_art->art_id_);
+			assert(_art->get_artist() == this);
+			assert(this->offsets_.contains(*_art->art_id_));
+			auto _of = this->offsets_.at(*_art->art_id_);
+			this->write_art(_of, _art);
+
+		};
+
+		void draw_self() override
+		{
+			this->context()->bind_shader(this->get_shader());
+			this->draw_arrays();
+		};
+
+		void destroy() override
+		{
+			this->on_destroy();
+		};
+
+		glWidgetArtist(ShaderProgram* _shader, Bytes _reserveBytes) :
+			shader_{ _shader }
+		{
+			auto _res = this->on_initialize();
+			assert(_res);
+			this->vbo_.reserve(_reserveBytes);
+		};
+
+		glWidgetArtist(const glWidgetArtist& other) = delete;
+		glWidgetArtist& operator=(const glWidgetArtist& other) = delete;
+
+		glWidgetArtist(glWidgetArtist&& other) noexcept = delete;
+		glWidgetArtist& operator=(glWidgetArtist&& other) noexcept = delete;
+
+		~glWidgetArtist()
+		{
+			this->on_destroy();
+		};
 
 	private:
 		ShaderProgram* shader_ = nullptr;
 		VAO vao_;
-		uint32_t vertice_count_ = 0;
-		uint32_t art_count_ = 0;
-		std::unordered_map<uint32_t, Bytes> offset_map_{};
+		VBO<GL_ARRAY_BUFFER> vbo_;
+		size_t vcount_ = 0;
+		uint16_t art_count_ = 0;
+		std::unordered_map<uint16_t, uint16_t> offsets_{};
 
 	};
-
-
-
-	class glDrawable
-	{
-	public:
-		bool good() const;
-		bool initialize();
-		void refresh();
-		void destroy();
-
-	};
-
-	struct glWidget
-	{
-		ColorRGBA_8 color_;
-
-	};
-
-	struct glObject
-	{
-
-	};
-
-
-
-
-
-
 
 	class glWindow : public GFXWindow
 	{
@@ -687,7 +896,7 @@ namespace sae::engine::core
 		bool keep_running_ = true;
 	};
 
-
+#endif
 
 
 
