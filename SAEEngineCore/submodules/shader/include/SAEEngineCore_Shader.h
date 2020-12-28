@@ -4,58 +4,52 @@
 
 #include <SAEEngineCore_Environment.h>
 
-#include <optional>
 #include <istream>
+#include <optional>
 
-namespace sae::engine::core
-{
-	class GFXContext;
+namespace sae::engine::core {
+class GFXContext;
 
-	class ShaderProgram
-	{
-	public:
-		bool good() const noexcept;
-		
-		GLuint id() const noexcept;
-		void destroy();
+class ShaderProgram {
+public:
+  bool good() const noexcept;
 
-		void bind();
-		void unbind();
+  GLuint id() const noexcept;
+  void destroy();
 
-		ShaderProgram(const ShaderProgram& other) = delete;
-		ShaderProgram& operator=(const ShaderProgram& other) = delete;
+  void bind();
+  void unbind();
 
-		ShaderProgram(ShaderProgram&& other);
-		ShaderProgram& operator=(ShaderProgram&& other);
+  ShaderProgram(const ShaderProgram &other) = delete;
+  ShaderProgram &operator=(const ShaderProgram &other) = delete;
 
-	protected:
-		explicit ShaderProgram(GLuint _id);
+  ShaderProgram(ShaderProgram &&other);
+  ShaderProgram &operator=(ShaderProgram &&other);
 
-	private:
-		GLuint id_ = 0;
-		friend std::optional<ShaderProgram> HACK_generate_shader(std::istream& _vertex, std::istream& _fragment);
-	};
+protected:
+  explicit ShaderProgram(GLuint _id);
 
-	class ShaderStage
-	{
-	public:
-		bool good() const noexcept;
+private:
+  GLuint id_ = 0;
+  friend std::optional<ShaderProgram>
+  HACK_generate_shader(std::istream &_vertex, std::istream &_fragment);
+};
 
-		GLuint id() const noexcept;
-		void destroy();
+class ShaderStage {
+public:
+  bool good() const noexcept;
 
-	private:
-		GLuint id_ = 0;
-	
-	};
+  GLuint id() const noexcept;
+  void destroy();
 
-	[[deprecated ("this is a temporary hack because im lazy as shit")]]
-	std::optional<ShaderProgram> HACK_generate_shader(std::istream& _vertex, std::istream& _fragment);
+private:
+  GLuint id_ = 0;
+};
 
+[[deprecated("this is a temporary hack because im lazy as shit")]] std::
+    optional<ShaderProgram>
+    HACK_generate_shader(std::istream &_vertex, std::istream &_fragment);
 
-
-
-
-}
+} // namespace sae::engine::core
 
 #endif

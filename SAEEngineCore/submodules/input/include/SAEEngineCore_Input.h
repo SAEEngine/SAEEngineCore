@@ -8,27 +8,17 @@
 
 struct GLFWwindow;
 
-namespace sae::engine::core
-{
+namespace sae::engine::core {
 
-	struct Cursor
-	{
-		struct Position
-		{
-			int16_t x = 0;
-			int16_t y = 0;
-		};
+struct Cursor {
+  struct Position {
+    int16_t x = 0;
+    int16_t y = 0;
+  };
 
-		static Position get_position(GLFWwindow* _window);
+  static Position get_position(GLFWwindow *_window);
+};
 
-		
-
-	};
-
-
-
-
-
-}
+} // namespace sae::engine::core
 
 #endif

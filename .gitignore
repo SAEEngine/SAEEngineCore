@@ -10,6 +10,9 @@
 *.userosscache
 *.sln.docstates
 
+
+.clang-format
+clang-format-all
 .vs
 .vscode
 build.sh
