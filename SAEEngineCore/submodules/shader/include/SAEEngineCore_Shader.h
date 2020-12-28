@@ -44,7 +44,6 @@ namespace sae::engine::core
 		GLuint id() const noexcept;
 		void destroy();
 
-
 	private:
 		GLuint id_ = 0;
 	
@@ -52,6 +51,9 @@ namespace sae::engine::core
 
 	[[deprecated ("this is a temporary hack because im lazy as shit")]]
 	std::optional<ShaderProgram> HACK_generate_shader(std::istream& _vertex, std::istream& _fragment);
+
+
+
 
 
 }

@@ -2,492 +2,50 @@
 #ifndef SAE_ENGINE_CORE_OBJECT_H
 #define SAE_ENGINE_CORE_OBJECT_H
 
-#include <SAEEngineCore_Shader.h>
-#include <SAEEngineCore_Environment.h>
 #include <SAEEngineCore_Event.h>
-
-#include <glm/gtc/matrix_transform.hpp>
-
-#include <SAELib_Either.h>
+#include <SAEEngineCore_Artist.h>
 
 #include <cstdint>
 #include <vector>
 #include <memory>
 #include <algorithm>
 #include <string>
-#include <variant>
-#include <string>
-#include <unordered_map>
-#include <tuple>
-#include <numeric>
+
+struct GLFWwindow;
 
 namespace sae::engine::core
 {
-
-	/**
-	 * @brief POD type for resprenting a point on the screen (given in pixels; origin is upper left of window)
-	*/
-	struct ScreenPoint
-	{
-		/**
-		 * @brief Integer type for holding a value in pixels
-		*/
-		using pixels_t = int16_t;
-		
-		pixels_t x = 0;
-		pixels_t y = 0;
-	};
-
-	/**
-	 * @brief POD type for representing a region on the screen in pixels
-	*/
-	struct UIRect
-	{
-		using pixels_t = typename ScreenPoint::pixels_t;
-
-		// The upper left point of the region
-		ScreenPoint a;
-
-		// The lower right point of the region
-		ScreenPoint b;
-
-		/**
-		 * @brief Returns a reference to the position of the left side of the rectangle
-		*/
-		pixels_t& left() noexcept { return this->a.x; };
-		
-		/**
-		 * @brief Returns a const reference the position of the left side of the rectangle
-		*/
-		constexpr const pixels_t& left() const noexcept { return this->a.x; };
-
-		/**
-		 * @brief Returns a reference to the position of the right side of the rectangle
-		*/
-		pixels_t& right() noexcept { return this->b.x; };
-
-		/**
-		 * @brief Returns a const reference the position of the right side of the rectangle
-		*/
-		constexpr const pixels_t& right() const noexcept { return this->b.x; };
-		
-		/**
-		 * @brief Returns a reference to the position of the top side of the rectangle
-		*/
-		pixels_t& top() noexcept { return this->a.y; };
-
-		/**
-		 * @brief Returns a const reference the position of the top side of the rectangle
-		*/
-		constexpr const pixels_t& top() const noexcept { return this->a.y; };
-
-		/**
-		 * @brief Returns a reference to the position of bottom top side of the rectangle
-		*/
-		pixels_t& bottom() noexcept { return this->b.y; };
-
-		/**
-		 * @brief Returns a const reference the position of the bottom side of the rectangle
-		*/
-		constexpr const pixels_t& bottom() const noexcept { return this->b.y; };
-
-		/**
-		 * @brief Returns the width of the region
-		 * @return value in pixels
-		*/
-		constexpr pixels_t width() const noexcept { return this->right() - this->left(); };
-
-		/**
-		 * @brief Returns the height of the region
-		 * @return value in pixels
-		*/
-		constexpr pixels_t height() const noexcept { return this->bottom() - this->top(); };
-
-		/**
-		 * @brief Shifts the region defined by this rect by _dx horizontally, and _dy and vertically
-		 * @param _dx Change in x position
-		 * @param _dy Change in y position
-		*/
-		UIRect& shift(pixels_t _dx, pixels_t _dy) noexcept;
-
-		/**
-		 * @brief Changes the width of the rectangle by _dw * 2 and the height by _dh * 2. The center of the rectangle doesn't move.
-		 * @param _dw Change in width (actual change would be _dw * 2)
-		 * @param _dh Change in height (actual change would be _dw * 2)
-		*/
-		UIRect& grow(pixels_t _dw, pixels_t _dh) noexcept;
-
-		/**
-		 * @brief Checks if a point on the screen intersects this rectangle
-		 * @param _p Point
-		 * @return true if intersecting, false if not
-		*/
-		constexpr bool intersects(ScreenPoint _p) const noexcept
-		{
-			return (this->left() <= _p.x && _p.x < this->right() && this->top() <= _p.y && _p.y < this->bottom());
-		};
-
-		/**
-		 * @brief Returns the position of the center of the rectangle
-		 * @return ScreenPoint (pair of positions in pixels)
-		*/
-		constexpr ScreenPoint find_center() const noexcept
-		{
-			return ScreenPoint{ std::midpoint(this->left(), this->right()), std::midpoint(this->top(), this->bottom()) };
-		};
-
-
-	};
-
-
-
-
-
-	/**
-	 * @brief Represents an R color with 8 bits for each color value (8 for the full color)
-	*/
-	union ColorR_8
-	{
-		using value_type = uint8_t;
-		constexpr static inline size_t count = 4;
-		struct
-		{
-			uint8_t r;
-		};
-		uint8_t col[count]{};
-	};
-
-	/**
-	 * @brief Represents an RGB color with 8 bits for each color value (24 for the full color)
-	*/
-	union ColorRGB_8
-	{
-		using value_type = uint8_t;
-		constexpr static inline size_t count = 3;
-		struct
-		{
-			uint8_t r;
-			uint8_t g;
-			uint8_t b;
-		};
-		uint8_t col[count]{};
-	};
-
-	/**
-	 * @brief Represents an RGBA color with 8 bits for each color value (32 for the full color)
-	*/
-	union ColorRGBA_8
-	{
-		using value_type = uint8_t;
-		constexpr static inline size_t count = 4;
-		struct
-		{
-			uint8_t r;
-			uint8_t g;
-			uint8_t b;
-			uint8_t a;
-		};
-		uint8_t col[count]{};
-	};
-
-
-
-	template <typename ColorT>
-	class ColorSet
-	{
-	public:
-		using value_type = ColorT;
-		using pointer = value_type*;
-		using reference = value_type&;
-		using const_pointer = const value_type*;
-		using const_reference = const value_type&;
-
-	private:
-		using ContainerT = std::vector<value_type>;
-
-	public:
-		using size_type = typename ContainerT::size_type;
-
-		auto& at(size_type i) { return this->entries_.at(i); };
-		const auto& at(size_type i) const { return this->entries_.at(i); };
-
-
-
-
-		ColorSet() = default;
-		ColorSet(std::initializer_list<value_type> _iList) :
-			entries_{ _iList }
-		{};
-
-	private:
-		ContainerT entries_{};
-
-	};
-
-#if false
-	/**
-	 * @brief Transforms a rectangle to be relative to the provided parent rectangle
-	 * @param _parent Parent rectangle
-	 * @param _child Child rectangle
-	 * @return The transformed version of _child, now relative to _parent
-	*/
-	UIRect& relative(const UIRect& _parent, UIRect& _child) noexcept;
-
-	/**
-	 * @brief Transforms a range of rectangles to be relative to the provided parent rectangle
-	 * @tparam _FwdIter Forward iterator type
-	 * @param _parent Parent rectangle
-	 * @param _firstChild Iterator to first child rectangle
-	 * @param _lastChild Iterator to one past the final child rectangle
-	 * @return Iterator to one past the final rectangle that was transformed
-	*/
-	template <typename _FwdIter>
-	static inline _FwdIter relative(const UIRect& _parent, const _FwdIter _firstChild, const _FwdIter _lastChild)
-	{
-		_FwdIter _it = _firstChild;
-		for (_it; _it != _lastChild; ++_it)
-		{
-			relative(_parent, *_it);
-		};
-		return _it;
-	};
-#endif
-	
-	
-
-	
-
-
-
-
-
-	// temp as I explore this idea
-
-
-
-
-	class UIData
-	{
-	public:
-		enum ENTRY_TYPE : size_t
-		{
-			NULL_T,
-			BOOL,
-			INT32,
-			UINT32,
-			DOUBLE,
-			STRING
-		};
-
-		struct null_entry_t {};
-		constexpr static inline null_entry_t null_entry{};
-
-	private:
-		using variant_type = std::variant
-			<
-			null_entry_t,
-			bool,
-			int32_t,
-			uint32_t,
-			double_t,
-			std::string
-			>;
-
-	public:
-		ENTRY_TYPE index() const noexcept { return (ENTRY_TYPE)this->vt_.index(); };
-
-		const std::string& name() const noexcept { return this->name_; };
-
-		template <typename T>
-		void set(T&& _val)
-		{
-			std::get<std::remove_cvref_t<T>>(this->vt_) = std::forward<T>(_val);
-		};
-
-		template <ENTRY_TYPE Type>
-		const auto& get() const
-		{
-			return std::get<(size_t)Type>(this->vt_);
-		};
-		template <typename T>
-		const auto& get() const
-		{
-			return std::get<T>(this->vt_);
-		};
-
-		template <typename T>
-		UIData(const std::string& _name, T&& _val) :
-			name_{ _name }, vt_{ std::forward<T>(_val) }
-		{};
-
-		template <typename T>
-		UIData& operator=(T&& _val)
-		{
-			this->set(std::forward<T>(_val));
-			return *this;
-		};
-
-	private:
-		std::string name_;
-		variant_type vt_{};
-
-	};
-
-	template <typename T>
-	concept cx_blackboard_data = requires (T a)
-	{
-		UIData(a);
-	};
-
-	class UIBlackboard
-	{
-	public:	
-		using value_type = UIData;
-		using key_type = std::string;
-
-	private:
-		using ContainerT = std::unordered_map<key_type, value_type>;
-
-	public:
-		bool contains(const key_type& _k) const;
-
-		void erase(const key_type& _k);
-
-		void clear() noexcept;
-
-		value_type& at(const key_type& _k);
-		const value_type& at(const key_type& _k) const;
-
-		void insert(const value_type& _v);
-		void insert(value_type&& _v);
-
-		template <typename T>
-		void insert(const key_type& _k, T&& _val)
-		{
-			this->entries_.insert({ _k, value_type{ _k, std::forward<T>(_val) } });
-		};
-
-		template <typename T>
-		key_type insert_unique(T&& _val)
-		{
-			std::string _kstr{ "__" + std::to_string(this->uentry_counter_) };
-			++this->uentry_counter_;
-			this->insert(_kstr, std::forward<T>(_val));
-			return _kstr;
-		};
-
-		size_t size() const noexcept;
-
-	private:
-		ContainerT entries_{};
-		size_t uentry_counter_ = 0;
-
-	};
-
-
-
-
-
-	class GFXContext;
-
-	class GFXBase
-	{
-	public:
-		GFXContext* context() const noexcept;
-
-	protected:
-		virtual ~GFXBase() = default;
-
-	private:
-		void set_context(GFXContext* _context) noexcept;
-		friend GFXContext;
-
-		GFXContext* context_ = nullptr;
-
-	};
-
-	class UIGroup;
-
-	class GFXContext
-	{
-	public:
-		virtual void push_event(const Event& _ev) = 0;
-
-		UIBlackboard& blackboard() noexcept;
-		const UIBlackboard& blackboard() const noexcept;
-
-		ShaderProgram* get_bound_shader() const noexcept;
-		void unbind_shader();
-		void bind_shader(ShaderProgram* _shader);
-		ShaderProgram* insert_shader(std::unique_ptr<ShaderProgram> _shader);
-
-		virtual GLFWwindow* get_window() const noexcept = 0;
-
-	protected:
-		friend UIGroup;
-
-		void add_to_context(GFXBase* _obj)
-		{
-			_obj->set_context(this);
-		};
-		
-		virtual ~GFXContext() = default;
-
-	private:
-		UIBlackboard blackboard_{};
-		ShaderProgram* bound_shader_ = nullptr;
-		std::vector<std::unique_ptr<ShaderProgram>> shaders_{};
-	};
-
 	/**
 	 * @brief Bit flag wrapping type for storing how an object should grow
 	*/
 	class GrowMode
 	{
 	public:
-		enum GROW_BIT : uint8_t 
+		enum GROW_BIT : uint8_t
 		{
-			LEFT = 0x1,
-			RIGHT = 0x2,
-			TOP = 0x04,
-			BOTTOM = 0x08
+			gmLeft = 0x1,
+			gmRight = 0x2,
+			gmTop = 0x04,
+			gmBottom = 0x08
 		};
 		using GROW_BIT_E = GROW_BIT;
 
 		/**
-		 * @brief Sets a grow bit to 1 
+		 * @brief Sets a grow bit to 1
 		*/
-		GrowMode& set(GROW_BIT_E _bit) noexcept
-		{
-			this->bits_ |= (uint8_t)_bit;
-			return *this;
-		};
+		GrowMode& set(GROW_BIT_E _bit) noexcept;
 
 		/**
 		 * @brief Sets a grow bit to 0
 		*/
-		GrowMode& clear(GROW_BIT_E _bit) noexcept
-		{
-			this->bits_ &= !((uint8_t)_bit);
-			return *this;
-		};
+		GrowMode& clear(GROW_BIT_E _bit) noexcept;
 
 		/**
 		 * @brief Sets the specified grow bit to the specified value
 		 * @param _bit Bit to set
 		 * @param _val Value to set it to
 		*/
-		GrowMode& set_to(GROW_BIT_E _bit, bool _val) noexcept
-		{
-			if (_val)
-			{
-				return this->set(_bit);
-			}
-			else
-			{
-				return this->clear(_bit);
-			};
-		};
+		GrowMode& set_to(GROW_BIT_E _bit, bool _val) noexcept;
 
 		/**
 		 * @brief Returns true if the _bit specified is 1
@@ -505,13 +63,14 @@ namespace sae::engine::core
 			return !this->is_set(_bit);
 		};
 
-		GrowMode& operator|=(GROW_BIT_E _bit) noexcept
+		friend inline GrowMode& operator<<(GrowMode& _gm, GROW_BIT_E _bit) noexcept
 		{
-			return this->set(_bit);
+			_gm.set(_bit);
+			return _gm;
 		};
 
 		constexpr GrowMode() noexcept = default;
-		
+
 	protected:
 		constexpr GrowMode(uint8_t _bits) noexcept :
 			bits_{ _bits }
@@ -532,7 +91,7 @@ namespace sae::engine::core
 	{
 	public:
 		using value_type = uint16_t;
-		
+
 	protected:
 		template <std::floating_point T>
 		constexpr static value_type fpoint_to_zlayer(T _v) noexcept
@@ -547,7 +106,7 @@ namespace sae::engine::core
 
 	public:
 		/**
-		 * @brief Returns the actual internal z layer value 
+		 * @brief Returns the actual internal z layer value
 		*/
 		constexpr value_type layer() const noexcept { return this->z_; };
 		constexpr explicit operator value_type() const noexcept { return this->layer(); };
@@ -563,7 +122,7 @@ namespace sae::engine::core
 		explicit constexpr operator T() const noexcept { return this->to_fpoint<T>(); };
 
 		constexpr auto operator<=>(const ZLayer&) const noexcept = default;
-		
+
 		template <cx_arithmetic T>
 		constexpr bool operator<=>(T _rhs) const noexcept
 		{
@@ -577,7 +136,7 @@ namespace sae::engine::core
 
 		constexpr ZLayer operator+(value_type _i) const noexcept { return ZLayer{ (value_type)(this->layer() + _i) }; };
 		ZLayer& operator+=(value_type _i) noexcept
-		{ 
+		{
 			return this->operator=(this->layer() + _i);
 		};
 
@@ -611,433 +170,191 @@ namespace sae::engine::core
 
 	private:
 		value_type z_ = 0;
-		
+
 	};
 
-
+	class GFXObject;
+	class GFXGroup;
+	class GFXView;
+	class GFXContext;
 
 	/**
-	 * @brief Base type for representing drawable UIObjects
+	 * @brief Basic object type defining an interface for interacting with a single object.
 	*/
-	class UIObject : public GFXBase
+	class GFXObject
 	{
+	public:
+		enum STATE_BITS : uint8_t
+		{
+			stActive = 0x01,
+			stSelected = 0x02,
+			stDisplayed = 0x04
+		};
+
 	protected:
-		/**
-		 * @brief Returns true if the parent pointer is set 
-		*/
+		friend GFXGroup;
+		friend GFXView;
+		friend GFXContext;
+
+		virtual void on_state_change(STATE_BITS _b, bool _to);
+
+	private:
+		void set_state_bit(STATE_BITS _bit) noexcept;
+
+		void clear_state_bit(STATE_BITS _bit) noexcept;
+
+		bool check_state_bit(STATE_BITS _bit) const noexcept;
+
+		void handle_event_type(const Event::evGrow& _event);
+
+	protected:
+		void set_parent(GFXView* _to) noexcept;
+		virtual void set_context(GFXContext* _to);
+
+	public:
+		GFXView* parent() const noexcept;
 		bool has_parent() const noexcept;
 
-		/**
-		 * @brief Returns a pointer to the parent element, will be nullptr if there isn't one 
-		*/
-		UIObject* parent() const noexcept;
+		GFXContext* context() const noexcept;
 
-		/**
-		 * @brief Sets the parent pointer
-		*/
-		void set_parent(UIObject* _parent) noexcept;
+		virtual void handle_event(Event& _event);
 
-	public:
-
-		/**
-		 * @brief Sets the bounds for the object
-		 * @param _r UIRect defining the region
-		*/
-		void set_bounds(UIRect _r) noexcept;
-
-		/**
-		 * @brief Returns the bounds of the object
-		 * @return UIRect defining the region 
-		*/
-		const UIRect& bounds() const noexcept;
-
-		/**
-		 * @brief Draws ONLY this object
-		*/
-		virtual void draw_self();
-
-		/**
-		 * @brief Draws the object and any dependents
-		*/
-		virtual void draw();
-
-		/**
-		 * @brief Returns a NON-const reference to the object's grow mode 
-		*/
-		GrowMode& grow_mode() noexcept;
-
-		/**
-		 * @brief Returns a const reference to the object's grow mode
-		*/
-		const GrowMode& grow_mode() const noexcept;
-
-		/**
-		 * @brief Grows the object by the provided amount
-		 * @param _dw Change in width
-		 * @param _dh Change in height
-		*/
-		virtual void grow(int16_t _dw, int16_t _dh);
-
-		/**
-		 * @brief Refreshes the object. Any changes applied after the last call to refresh() will be applied and draw() should show them.
-		*/
-		virtual void refresh() {};
-
-		virtual bool initialize() { return true; };
-
-		virtual void destroy() {};
-
-	private:
-		static inline ColorSet<ColorRGBA_8> EMPTY_PALLETE{};
-
-	public:
-
-		/**
-		 * @brief Returns the palette used by the object
-		*/
-		virtual ColorSet<ColorRGBA_8>& get_palette() const;
-		
-		/**
-		 * @brief Enumerator to better describe the return value from the handle_event() function
-		*/
-		enum HANDLE_EVENT_RETURN : bool
-		{
-			IGNORED = false,
-			HANDLED = true
-		};
-
-		/**
-		 * @brief Handles a standard event
-		 * @return IGNORED if the event was ignored, HANDLED if it was handled
-		*/
-		virtual HANDLE_EVENT_RETURN handle_event(const Event& _event);
+		Rect& bounds() noexcept;
+		const Rect& bounds() const noexcept;
 
 		ZLayer& zlayer() noexcept;
-
 		const ZLayer& zlayer() const noexcept;
 
+		GrowMode& grow_mode() noexcept;
+		const GrowMode& grow_mode() const noexcept;
 
+		virtual void refresh();
+		virtual void grow(pixels_t _dw, pixels_t _dh);
 
+		GFXObject(Rect _r);
+		
+		GFXObject();
+		
+		GFXObject(const GFXObject& other) = delete;
+		GFXObject& operator=(const GFXObject& other) = delete;
+		GFXObject(GFXObject&& other) noexcept = delete;
+		GFXObject& operator=(GFXObject&& other) noexcept = delete;
 
-		UIObject(UIRect _r, ZLayer _z) noexcept;
-		UIObject(UIRect _r) noexcept;
-
-		virtual ~UIObject() = default;
+		virtual ~GFXObject();
 
 	private:
-		GrowMode grow_mode_{};
 		GFXContext* context_ = nullptr;
-		UIObject* parent_ = nullptr;
-		UIRect bounds_{};
-		ZLayer zlayer_{};
+		GFXView* parent_ = nullptr;
+		GrowMode grow_mode_{};
+		uint8_t state_ = 0x00;
+		Rect bounds_{};
+		ZLayer z_{};
+	};
+
+	/**
+	 * @brief Base type for handling a group of objects that act as only one GFXObject. Provides protected container functionality.
+	*/
+	class GFXGroup : public GFXObject
+	{
+	protected:
+		using value_type = std::shared_ptr<GFXObject>;
+		using container_type = std::vector<value_type>;
+
+		void insert_child(value_type _obj);
+		void remove_child(GFXObject* _obj);
+
+		container_type& children() noexcept;
+		const container_type& children() const noexcept;
+
+		void set_context(GFXContext* _to) override;
+
+	public:
+		void refresh() override;
+		void grow(pixels_t _dw, pixels_t _dh) override;
+
+		void handle_event(Event& _event) override;
+
+		GFXGroup(Rect _r);
+
+	private:
+		container_type children_{};
 
 	};
 
 	/**
-	 * @brief Base type for a group of UIObjects
+	 * @brief Base container type for GFXObjects. Implements public container functionality derived from GFXGroup
 	*/
-	class UIGroup
+	class GFXView : public GFXGroup
 	{
-	private:
-		using value_type = std::shared_ptr<UIObject>;
-		using ContainerT = std::vector<value_type>;
-		
-		/**
-		 * @brief Encapsulation function to return the child objects container
-		 * @return NON-Const value reference to the container
-		*/
-		ContainerT& get_container() noexcept;
-
-		/**
-		 * @brief Encapsulation function to return the child objects container
-		 * @return Const value reference to the container
-		*/
-		const ContainerT& get_container() const noexcept;
-
-	protected:
-		void add_to_graphics_context(GFXContext* _context, GFXBase* _obj)
-		{
-			_context->add_to_context(_obj);
-		};
-
 	public:
+		using value_type = GFXGroup::value_type;
+		using pointer = value_type*;
+		using reference = value_type&;
+		using const_pointer = const value_type*;
+		using const_reference = const value_type&;
 
-		/**
-		 * @brief Adds a child to the group
-		 * @param _obj Shared pointer to new child
-		*/
-		virtual void insert(std::shared_ptr<UIObject> _obj);
-		
-		/**
-		 * @brief Removes a child from the group
-		 * @param _obj Pointer to the object
-		*/
-		virtual void remove(UIObject* _obj);
-		
-		/**
-		 * @brief Returns the number of children in the group
-		*/
-		size_t child_count() const noexcept;
+		using size_type = typename GFXGroup::container_type::size_type;
+		using allocator_type = typename GFXGroup::container_type::allocator_type;
 
-		/**
-		 * @brief Returns a reference to the children container
-		*/
-		auto& children() noexcept { return this->get_container(); };
+		using iterator = typename GFXGroup::container_type::iterator;
+		using const_iterator = typename GFXGroup::container_type::const_iterator;
 
-		/**
-		 * @brief Returns a const-reference to the children container
-		*/
-		const auto& children() const noexcept { return this->get_container(); };
+		iterator begin() noexcept;
+		const_iterator begin() const noexcept;
+		const_iterator cbegin() const noexcept;
 
-	private:
-		ContainerT objs_{};
+		iterator end() noexcept;
+		const_iterator end() const noexcept;
+		const_iterator cend() const noexcept;
+
+		size_type child_count() const noexcept;
+
+		reference first_child() noexcept;
+		const_reference first_child() const noexcept;
+
+		reference last_child() noexcept;
+		const_reference last_child() const noexcept;
+
+		reference child(size_t i);
+		const_reference child(size_t i) const;
+
+		void clear() noexcept;
+
+		void insert(value_type _obj);
+		void emplace(GFXObject* _obj);
+
+		void remove(GFXObject* _obj);
+
+		GFXView(GFXContext* _context, Rect _r);
 
 	};
 
-
-
-	class UIView : public UIObject, public UIGroup
+	/**
+	 * @brief Represents a graphics context - usually a window. This prevents the need for global state.
+	*/
+	class GFXContext : public GFXView
 	{
 	public:
 
-		/**
-		 * @brief Draws this object and any child objects
-		*/
-		void draw() override
-		{
-			this->draw_self();
-			for (auto& o : this->children())
-			{
-				o->draw();
-			};
-		}
+		void handle_event(Event& _event) override;
+		virtual void draw();
 
-		void insert(std::shared_ptr<UIObject> _obj) override;
+		void register_artist(const std::string& _name, std::unique_ptr<IArtist> _artist);
+		IArtist* find_artist(const std::string& _name);
 
-		void remove(UIObject* _obj) override;
+		GLFWwindow* window() const noexcept;
 
-		void grow(int16_t _dw, int16_t _dh) override;
+		GFXContext(GLFWwindow* _window, Rect _r);
+		GFXContext(GLFWwindow* _window);
 
-		void refresh() override;
-
-		bool initialize() override;
-
-		void destroy() override;
-
-		/**
-		 * @brief Passes the event down to children until one of them handles it
-		 * @param _ev Event to handle
-		 * @return IGNORED if the event was ignored, HANDLED if handled
-		*/
-		HANDLE_EVENT_RETURN handle_event(const Event& _ev) override;
-
-		UIView(GFXContext* _context, UIRect _r);
-
-	};
-
-	class UIButton : public UIView
-	{
-	private:
-		EventResponse on_mb1_;
-		EventResponse on_mb2_;
-
-		bool is_down_ = false;
-		int down_button_ = 0;
-
-		void handle_response(const EventResponse& _ev, const Event& _fromEvent);
-
-	protected:
-		HANDLE_EVENT_RETURN handle_mouse_event(const Event::evMouse& _evmouse);
-
-	public:
-
-		HANDLE_EVENT_RETURN handle_event(const Event& _event) override;
-
-		UIButton(GFXContext* _context, UIRect _r, const EventResponse& _onMouse1, const EventResponse& _onMouse2);
-
-	};
-
-	class UIPushButton : public UIView
-	{
-	private:
-		static inline ColorSet<ColorRGBA_8>  DEFAULT_PALETTE
-		{ 
-			{ ColorRGBA_8{ 255, 255, 255, 255 } },	// resting state
-			{ ColorRGBA_8{ 255, 255, 255, 255 } },	// pushed state
-			{ ColorRGBA_8{ 255, 255, 255, 255 } }	// hovered state
-		};
-
-		enum BUTTON_STATE
-		{
-			RESTING,
-			PUSHED,
-			HOVERED
-		};
-
-		BUTTON_STATE state_ = BUTTON_STATE::RESTING;
-
-		EventResponse on_push_;
-		EventResponse on_release_;
-		EventResponse on_mouse_enter_;
-		EventResponse on_mouse_leave_;
-
-		bool is_hovered_ = true;
-
-		bool is_down_ = false;
-		int down_button_ = 0;
-
-		void handle_response(const EventResponse& _ev, const Event& _fromEvent);
-
-	protected:
-		HANDLE_EVENT_RETURN handle_mouse_event(const Event::evMouse& _evmouse);
-		HANDLE_EVENT_RETURN handle_cursor_event(const Event::evCursorMove& _event);
-
-
-
-	public:
-		ColorSet<ColorRGBA_8>& get_palette() const override { return this->DEFAULT_PALETTE; };
-
-		HANDLE_EVENT_RETURN handle_event(const Event& _event) override;
-
-		UIPushButton(	GFXContext* _context, UIRect _r, const EventResponse& _onPush, const EventResponse& _onRelease,
-						const EventResponse& _onMouseEnter, const EventResponse& _onMouseLeave	);
-
-	};
-
-	class UIToggleButton : public UIView
-	{
-	private:
-		static inline ColorSet<ColorRGBA_8>  DEFAULT_PALETTE
-		{
-			{ ColorRGBA_8{ 140, 30, 30, 255 } },	// resting-inactive state
-			{ ColorRGBA_8{ 30, 140, 30, 255 } },	// resting-active state
-			{ ColorRGBA_8{ 20, 80, 20, 255 } },		// pushed-active state
-			{ ColorRGBA_8{ 80, 20, 20, 255 } },		// pushed-inactive state
-			{ ColorRGBA_8{ 160, 80, 80, 255 } },	// hovered-inactive state
-			{ ColorRGBA_8{ 80, 160, 80, 255 } }		// hovered-active state
-		};
-
-		enum BUTTON_STATE
-		{
-			RESTING_INACTIVE,
-			RESTING_ACTIVE,
-			PUSHED_INACTIVE,
-			PUSHED_ACTIVE,
-			HOVERED_INACTIVE,
-			HOVERED_ACTIVE,
-		};
-
-		BUTTON_STATE state_ = BUTTON_STATE::RESTING_INACTIVE;
-
-		bool is_hovered_ = false;
-		bool is_down_ = false;
-		bool is_active_ = false;
-
-		EventResponse on_toggle_on_;
-		EventResponse on_toggle_off_;
-
-		void handle_response(const EventResponse& _ev, const Event& _fromEvent);
-
-	protected:
-		HANDLE_EVENT_RETURN handle_mouse_event(const Event::evMouse& _evmouse);
-		HANDLE_EVENT_RETURN handle_cursor_event(const Event::evCursorMove& _event);
-
-	public:
-		
-		ColorSet<ColorRGBA_8>& get_palette() const override { return this->DEFAULT_PALETTE; };
-
-		BUTTON_STATE get_state() const noexcept { return this->state_; };
-
-		HANDLE_EVENT_RETURN handle_event(const Event& _event) override;
-
-		UIToggleButton(GFXContext* _context, UIRect _r, const EventResponse& _onToggleOn, const EventResponse& _onToggleOff);
-
-	protected:
-		std::string bb_key_{};
-	};
-	
-
-
-
-	struct UIList : public UIView
-	{
-	public:
-		enum POSITION_AXIS
-		{
-			HORIZONTAL,
-			VERTICAL
-		};
-		
-	private:
-		void resposition_elements_horizontal();
-		void resposition_elements_vertical();
-
-		void reposition_elements();
-
-		int16_t margin_ = 5;
-		std::optional<UIRect> fit_to_rect_{ std::nullopt };
-		POSITION_AXIS axis_ = POSITION_AXIS::HORIZONTAL;
-
-	public:
-		void insert(std::shared_ptr<UIObject> _ptr);
-		void grow(int16_t _dw, int16_t _dh) override;
-		void refresh() override;
-
-
-
-		UIList(GFXContext* _context, UIRect _r, POSITION_AXIS _axis, int16_t _margin, std::optional<UIRect> _fitToRect = std::nullopt);
-		UIList(GFXContext* _context, UIRect _r, POSITION_AXIS _axis, std::optional<UIRect> _fitToRect = std::nullopt);
-		
-
-	};
-
-
-	class GFXWindow : public UIView, public Window, public GFXContext
-	{
-	private:
-		static void glfw_mouse_button_callback(GLFWwindow* _window, int _button, int _action, int _mods);
-
-		static void glfw_key_callback(GLFWwindow* _window, int _key, int _scancode, int _action, int _modss);
-		static void glfw_text_callback(GLFWwindow* _window, unsigned _codepoint);
-
-		static void glfw_cursor_move_callback(GLFWwindow* _window, double _x, double _y);
-		static void glfw_cursor_enter_callback(GLFWwindow* _window, int _entered);
-		
-		static void glfw_framebuffer_resize_callback(GLFWwindow* _window, int _width, int _height);
-		static void glfw_window_close_callback(GLFWwindow* _window);
-
-		static void glfw_window_refresh_callback(GLFWwindow* _window);
-
-	public:
-
-		/**
-		 * @brief Draws the window's child objects and swaps the window buffers
-		*/
-		void draw() override;
-
-		void refresh() override;
-
-		HANDLE_EVENT_RETURN handle_event(const Event& _event) override;
-
-		void push_event(const Event& _event) override { this->handle_event(_event); };
-
-		void grow(int16_t _dw, int16_t _dh) override;
-
-		GLFWwindow* get_window() const noexcept final;
-
-		/**
-		 * @brief Opens a new window of size (_width, _height) with title _title
-		*/
-		GFXWindow(ScreenPoint::pixels_t _width, ScreenPoint::pixels_t _height, const std::string& _title);
+		~GFXContext();
 
 	private:
+		GLFWwindow* window_ = nullptr;
+		std::vector<std::unique_ptr<IArtist>> artists_{};
+		std::unordered_map<std::string, IArtist*> artist_names_{};
 
 	};
-
-
-
-
-
 
 }
 

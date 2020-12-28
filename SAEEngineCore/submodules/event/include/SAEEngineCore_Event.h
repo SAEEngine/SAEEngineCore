@@ -2,7 +2,8 @@
 #ifndef SAE_ENGINE_CORE_EVENT_H
 #define SAE_ENGINE_CORE_EVENT_H
 
-#include "SAEEngineCore_EventType.h"
+#include <SAEEngineCore_EventType.h>
+#include <SAEEngineCore_Widget.h>
 
 #include <SAELib_Functor.h>
 
@@ -10,6 +11,8 @@
 
 namespace sae::engine::core
 {
+
+	class UIObject;
 
 	/**
 	 * @brief Variant pattern type for storing any type of Event. Uses a variant to implement polymorphism
@@ -23,6 +26,11 @@ namespace sae::engine::core
 	public:	
 		template <EVENT_TYPE_E Type>
 		struct EventType;
+
+		template <>
+		struct EventType<EVENT_TYPE_E::NULL_EVENT>
+		{};
+		using evNull = EventType<EVENT_TYPE_E::NULL_EVENT>;
 
 		template <>
 		struct EventType<EVENT_TYPE_E::BLACKBOARD_CHANGE>
@@ -75,7 +83,8 @@ namespace sae::engine::core
 		template <>
 		struct EventType<EVENT_TYPE_E::SCROLL_EVENT>
 		{
-
+			double x = 0.0;
+			double y = 0.0;
 		};
 		using evScroll = EventType<EVENT_TYPE_E::SCROLL_EVENT>;
 
@@ -89,19 +98,32 @@ namespace sae::engine::core
 		template <>
 		struct EventType<EVENT_TYPE_E::USER_EVENT>
 		{
-			constexpr auto operator<=>(const EventType<EVENT_TYPE_E::USER_EVENT>&) const noexcept = default;
+			constexpr auto operator<=>(const EventType<EVENT_TYPE_E::USER_EVENT>& other) const noexcept
+			{
+				return this->ev <=> other.ev;
+			};
 			constexpr operator int() const noexcept { return this->ev; };
 			int ev = 0;
+
+			int content = 0;
+
 		};
 		using evUser = EventType<EVENT_TYPE_E::USER_EVENT>;
 
 		template <>
-		struct EventType<EVENT_TYPE_E::WINDOW_RESIZE>
+		struct EventType<EVENT_TYPE_E::GROW_EVENT>
 		{
-			int16_t width = 0;
-			int16_t height = 0;
+			pixels_t dw = 0_px;
+			pixels_t dh = 0_px;
 		};
-		using evWindowResize = EventType<EVENT_TYPE_E::WINDOW_RESIZE>;
+		using evGrow = EventType<EVENT_TYPE_E::GROW_EVENT>;
+
+		template <>
+		struct EventType<EVENT_TYPE_E::REFRESH_EVENT>
+		{
+
+		};
+		using evRefresh = EventType<EVENT_TYPE_E::REFRESH_EVENT>;
 
 		template <>
 		struct EventType<EVENT_TYPE_E::WINDOW_CLOSE>
@@ -110,10 +132,9 @@ namespace sae::engine::core
 		};
 		using evWindowClose = EventType<EVENT_TYPE_E::WINDOW_CLOSE>;
 
-
 	protected:
-
 		using variant_type = std::variant<
+			EventType<EVENT_TYPE_E::NULL_EVENT>,
 			EventType<EVENT_TYPE_E::BLACKBOARD_CHANGE>,
 			EventType<EVENT_TYPE_E::CURSOR_WINDOW_BOUNDS>,
 			EventType<EVENT_TYPE_E::CURSOR_MOVE>,
@@ -122,7 +143,8 @@ namespace sae::engine::core
 			EventType<EVENT_TYPE_E::SCROLL_EVENT>,
 			EventType<EVENT_TYPE_E::TEXT_EVENT>,
 			EventType<EVENT_TYPE_E::USER_EVENT>,
-			EventType<EVENT_TYPE_E::WINDOW_RESIZE>,
+			EventType<EVENT_TYPE_E::GROW_EVENT>,
+			EventType<EVENT_TYPE_E::REFRESH_EVENT>,
 			EventType<EVENT_TYPE_E::WINDOW_CLOSE>
 		>;
 
@@ -131,6 +153,22 @@ namespace sae::engine::core
 
 	public:
 		EVENT_TYPE index() const noexcept { return EVENT_TYPE{ (EVENT_TYPE_E)this->get_variant().index() }; };
+
+		bool has_event() const noexcept
+		{
+			return this->index() != EVENT_TYPE{ EVENT_TYPE::NULL_EVENT };
+		};
+		explicit operator bool() const noexcept { return this->has_event(); };
+
+		bool is_broadcast() const noexcept { return this->broadcast_; };
+
+		void clear()
+		{
+			if (!this->is_broadcast())
+			{
+				this->get_variant() = evNull{};
+			};
+		};
 
 		template <EVENT_TYPE_E Type>
 		auto& get() 
@@ -143,9 +181,14 @@ namespace sae::engine::core
 			return std::get<EventType<Type>>(this->get_variant());
 		};
 
+
+		Event() :
+			vt_{ evNull{} }, broadcast_{ false }
+		{};
+
 		template <EVENT_TYPE_E Type>
-		Event(const EventType<Type>& _evnt) : 
-			vt_{ _evnt }
+		Event(const EventType<Type>& _evnt, bool _broadcast = false) :
+			vt_{ _evnt }, broadcast_{ _broadcast }
 		{};
 		template <EVENT_TYPE_E Type>
 		Event& operator=(const EventType<Type>& _evnt)
@@ -155,8 +198,8 @@ namespace sae::engine::core
 		};
 
 		template <EVENT_TYPE_E Type>
-		Event(EventType<Type>&& _evnt) :
-			vt_{ std::move(_evnt) }
+		Event(EventType<Type>&& _evnt, bool _broadcast = false) :
+			vt_{ std::move(_evnt) }, broadcast_{ _broadcast }
 		{};
 		template <EVENT_TYPE_E Type>
 		Event& operator=(EventType<Type>&& _evnt)
@@ -166,9 +209,13 @@ namespace sae::engine::core
 		};
 
 	private:
+		bool broadcast_ = false;
 		variant_type vt_{};
 
+
 	};
+
+	using EventSet = std::vector<Event>;
 
 
 
@@ -177,58 +224,32 @@ namespace sae::engine::core
 	class EventResponse
 	{
 	public:
-		using deferred_type = Event::evUser;
-		using immediate_type = HandleEventCallback;
+		UIObject* give_to() const noexcept { return this->give_to_; };
+
+		Event& get() noexcept { return this->ev_; };
+		const Event& get() const noexcept { return this->ev_; };
+
+		void set_give_to(UIObject* _obj) noexcept { this->give_to_ = _obj; };
+
+		EventResponse(const Event& _ev, UIObject* _giveTo) :
+			ev_{ _ev }, give_to_{ _giveTo }
+		{};
+		EventResponse(Event&& _ev, UIObject* _giveTo) :
+			ev_{ _ev }, give_to_{ _giveTo }
+		{};
+
+		EventResponse(const Event& _ev) :
+			EventResponse{ _ev, nullptr }
+		{};
+		EventResponse(Event&& _ev) :
+			EventResponse{ std::move(_ev), nullptr }
+		{};
 
 	private:
-		using variant_type = std::variant<deferred_type, immediate_type>;
-		variant_type vt_;
-
-		using index_type = decltype(vt_.index());
-
-	public:
-		enum RESPONSE_TYPE : index_type
-		{
-			DEFERRED = 0,
-			IMMEDIATE = 1
-		};
-
-		RESPONSE_TYPE type() const noexcept 
-		{ 
-			return (RESPONSE_TYPE)this->vt_.index();
-		};
-
-		template <RESPONSE_TYPE Type>
-		auto& get() 
-		{ 
-			return std::get<(index_type)Type>(this->vt_);
-		};
-		template <RESPONSE_TYPE Type>
-		const auto& get() const 
-		{ 
-			return std::get<(index_type)Type>(this->vt_);
-		};
-
-		EventResponse(deferred_type _df) :
-			vt_{ _df }
-		{};
-		EventResponse(const immediate_type& _im) :
-			vt_{ _im }
-		{};
-
-		EventResponse& operator=(deferred_type _df)
-		{
-			this->vt_ = _df;
-			return *this;
-		};
-		EventResponse& operator=(const immediate_type& _im)
-		{
-			this->vt_ = _im;
-			return *this;
-		};
+		UIObject* give_to_ = nullptr;
+		Event ev_;
 
 	};
-	
 
 
 }

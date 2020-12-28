@@ -45,7 +45,9 @@ set(source_dirs
 ###
 set(link_libs_public 
 	SAEEngineCore_Config
-	SAEEngineCore_Environment
+	SAEEngineCore_Input
+	SAEEngineCore_Event
+	SAEEngineCore_Object
 )
 
 ### Add libary targets to link to below, these will be private
@@ -57,7 +59,7 @@ set(link_libs_public
 ###		)
 ###
 set(link_libs_private
-	
+	glfw
 )
 
 ##
