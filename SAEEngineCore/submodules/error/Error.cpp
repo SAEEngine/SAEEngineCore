@@ -1,6 +1,10 @@
 #include "Error.h"
 
-#include <cassert>
 #include <functional>
+#include <cassert>
 
-namespace sae::engine::core {}
+namespace sae::engine::core
+{
+
+
+}

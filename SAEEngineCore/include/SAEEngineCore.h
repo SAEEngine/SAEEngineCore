@@ -1,3 +1,6 @@
 ﻿#pragma once
 
-namespace sae::engine {}
+namespace sae::engine
+{
+
+}
