@@ -2,13 +2,21 @@
 #ifndef SAE_ENGINE_WORLD_ISO_H
 #define SAE_ENGINE_WORLD_ISO_H
 
-namespace sae::engine::iso {
+namespace sae::engine::iso
+{
 
-class Camera {
-public:
-private:
-};
+	class Camera
+	{
+	public:
 
-} // namespace sae::engine::iso
+
+	private:
+
+	};
+
+
+
+
+}
 
 #endif
