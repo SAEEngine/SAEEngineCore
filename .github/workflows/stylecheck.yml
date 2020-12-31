@@ -20,10 +20,6 @@ jobs:
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - name: wget
-        uses: wei/wget@v1
-        with:
-          args: -O clang_format_all https://pastebin.com/raw/SaL3LNmL
       - uses: actions/checkout@v2
 
       # Installs clang format
@@ -31,17 +27,8 @@ jobs:
         run: sudo apt install clang-format
         shell: bash
 
-
-      # Make the pulled file executable
-      - name: Make clang_format_all executable
-        run: chmod +x clang_format_all
-        shell: bash
-
-
       # This will run clang format and potentially clint
-      - name: run the pulled clang_format_all
-        run: ./clang_format_all .
-        shell: bash
+            
       
       
       - name: Run a one-line script
