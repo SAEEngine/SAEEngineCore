@@ -7,14 +7,9 @@ target_include_directories(SAEEngineCore PUBLIC "include" PRIVATE "source")
 target_link_libraries(SAEEngineCore 
 	PUBLIC 
 	SAEEngineCore_Config 
-	
-	SAEEngineCore_Logging
-	SAEEngineCore_FileHandling
 
 	PRIVATE 
 	glfw 
-	glad 
-	glm
 )
 
 enable_testing()

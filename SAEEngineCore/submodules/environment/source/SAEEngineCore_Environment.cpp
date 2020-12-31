@@ -124,7 +124,6 @@ namespace sae::engine::core
 		if (glfwGetCurrentContext() == NULL)
 		{
 			glfwMakeContextCurrent(this->get());
-			gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
 		};
 	};
 

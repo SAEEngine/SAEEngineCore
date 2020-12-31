@@ -2,7 +2,6 @@
 #ifndef SAE_ENGINE_CORE_ENVIRONMENT_H
 #define SAE_ENGINE_CORE_ENVIRONMENT_H
 
-#include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
 #include <memory>

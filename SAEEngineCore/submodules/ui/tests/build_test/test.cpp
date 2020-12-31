@@ -16,16 +16,9 @@ constexpr static inline int GOOD_TEST = 0;
 
 #include <SAEEngineCore_UI.h>
 
-
 using namespace sae::engine::core;
 
 int main(int argc, char* argv[], char* envp[])
 {
-
-
-	
-
-
-
 	return GOOD_TEST;
 };

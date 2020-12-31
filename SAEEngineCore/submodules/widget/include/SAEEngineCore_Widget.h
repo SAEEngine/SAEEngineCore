@@ -5,7 +5,7 @@
 #include <numeric>
 #include <concepts>
 #include <vector>
-
+#include <algorithm>
 
 namespace sae::engine::core
 {
@@ -414,6 +414,99 @@ namespace sae::engine::core
 
 	};
 
+
+
+	template <typename T>
+	concept cx_arithmetic = std::is_arithmetic_v<T>;
+
+	/**
+	 * @brief Type to wrap up a Z position. Higher value is always closer to the front.
+	*/
+	class ZLayer
+	{
+	public:
+		using value_type = uint16_t;
+
+	protected:
+		template <std::floating_point T>
+		constexpr static value_type fpoint_to_zlayer(T _v) noexcept
+		{
+			return (value_type)(std::clamp(_v, (T)0, std::numeric_limits<T>::max()) * (T)std::numeric_limits<value_type>::max());
+		};
+		template <std::floating_point T>
+		constexpr static T zlayer_to_fpoint(value_type _v) noexcept
+		{
+			return (T)_v / (T)std::numeric_limits<value_type>::max();
+		};
+
+	public:
+		/**
+		 * @brief Returns the actual internal z layer value
+		*/
+		constexpr value_type layer() const noexcept { return this->z_; };
+		constexpr explicit operator value_type() const noexcept { return this->layer(); };
+
+		/**
+		 * @brief Converts the z value to a floating point number. This is always >= 0.0f
+		 * @tparam T floating point type
+		 * @return The converted floating point value
+		*/
+		template <std::floating_point T = float_t>
+		constexpr T to_fpoint() const noexcept { return zlayer_to_fpoint<T>(this->layer()); };
+		template <std::floating_point T = float_t>
+		explicit constexpr operator T() const noexcept { return this->to_fpoint<T>(); };
+
+		constexpr auto operator<=>(const ZLayer&) const noexcept = default;
+
+		template <cx_arithmetic T>
+		constexpr bool operator<=>(T _rhs) const noexcept
+		{
+			return this->layer() <=> (value_type)_rhs;
+		};
+		template <std::floating_point T>
+		constexpr bool operator<=>(T _rhs) const noexcept
+		{
+			return this->layer() <=> this->fpoint_to_zlayer(_rhs);
+		};
+
+		constexpr ZLayer operator+(value_type _i) const noexcept { return ZLayer{ (value_type)(this->layer() + _i) }; };
+		ZLayer& operator+=(value_type _i) noexcept
+		{
+			return this->operator=(this->layer() + _i);
+		};
+
+		constexpr ZLayer operator-(value_type _i) const noexcept { return ZLayer{ (value_type)(this->layer() - _i) }; };
+		ZLayer& operator-=(value_type _i) noexcept
+		{
+			return this->operator=(this->layer() - _i);
+		};
+
+		constexpr ZLayer() = default;
+
+		constexpr ZLayer(value_type _z) noexcept :
+			z_{ _z }
+		{};
+		template <std::floating_point T>
+		constexpr ZLayer(T _zfloat) noexcept :
+			z_{ fpoint_to_zlayer(_zfloat) }
+		{};
+
+		ZLayer& operator=(value_type _z) noexcept
+		{
+			this->z_ = _z;
+			return *this;
+		};
+		template <std::floating_point T>
+		ZLayer& operator=(T _z) noexcept
+		{
+			this->z_ = fpoint_to_zlayer(_z);
+			return *this;
+		};
+
+	private:
+		value_type z_ = 0;
+
+	};
 
 
 }

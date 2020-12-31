@@ -35,4 +35,5 @@ endmacro(new_test_instance)
 ###
 
 define_test(SAEEngineCore_UI_BuildTest SAEEngineCore_UI)
+target_link_libraries(SAEEngineCore_UI_BuildTest PRIVATE SAEEngineCore_Environment)
 new_test_instance("SAEEngineCore_UI_BuildTest" SAEEngineCore_UI_BuildTest)

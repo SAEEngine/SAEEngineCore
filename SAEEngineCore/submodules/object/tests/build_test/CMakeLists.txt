@@ -35,5 +35,4 @@ endmacro(new_test_instance)
 ###
 
 DEFINE_TEST(SAEEngineCore_Object_BuildTest SAEEngineCore_Object)
-target_link_libraries(SAEEngineCore_Object_BuildTest PRIVATE SAEEngineCore_Environment SAEEngineCore_glObject)
 NEW_TEST_INSTANCE("SAEEngineCore_Object_BuildTest" SAEEngineCore_Object_BuildTest)
