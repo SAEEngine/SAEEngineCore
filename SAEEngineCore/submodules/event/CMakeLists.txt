@@ -45,6 +45,7 @@ set(source_dirs
 ###
 set(link_libs_public 
 	SAEEngineCore_Config
+	SAEEngineCore_Widget
 	SAELib
 )
 

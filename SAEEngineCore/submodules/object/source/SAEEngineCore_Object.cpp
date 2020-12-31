@@ -1,703 +1,263 @@
 #include "SAEEngineCore_Object.h"
 
-#include <SAEEngineCore_Logging.h>
-#include <SAEEngineCore_Input.h>
-
-#include <bitset>
-#include <array>
-
-namespace sae::engine::core
-{
-	UIRect& UIRect::shift(pixels_t _dx, pixels_t _dy) noexcept
-	{
-		this->left() += _dx;
-		this->right() += _dx;
-
-		this->top() += _dy;
-		this->bottom() += _dy;
-
-		return *this;
-	};
-
-	UIRect& UIRect::grow(pixels_t _dw, pixels_t _dh) noexcept
-	{
-		this->left() -= _dw;
-		this->right() += _dw;
-
-		this->top() -= _dh;
-		this->bottom() += _dh;
-		
-		return *this;
-	};
-}
-
-namespace sae::engine::core
-{
-	bool UIBlackboard::contains(const key_type& _k) const
-	{
-		return this->entries_.contains(_k);
-	};
-
-	UIBlackboard::value_type& UIBlackboard::at(const key_type& _k)
-	{
-		return this->entries_.at(_k);
-	};
-	const UIBlackboard::value_type& UIBlackboard::at(const key_type& _k) const
-	{
-		return this->entries_.at(_k);
-	};
-
-	void UIBlackboard::erase(const key_type& _k)
-	{
-		this->entries_.erase(_k);
-	};
-
-	void UIBlackboard::insert(const value_type& _v)
-	{
-		this->entries_.insert({ _v.name(), _v });
-	};
-	void UIBlackboard::insert(value_type&& _v)
-	{
-		auto _name = _v.name();
-		this->entries_.insert({ _name, std::move(_v) });
-	};
-
-	void UIBlackboard::clear() noexcept
-	{
-		this->entries_.clear();
-	};
-}
-
-namespace sae::engine::core
-{
-	GFXContext* GFXBase::context() const noexcept
-	{
-		return this->context_;
-	};
-
-	void GFXBase::set_context(GFXContext* _context) noexcept
-	{
-		this->context_ = _context;
-	};
-}
-
-namespace sae::engine::core
-{
-	void UIObject::set_bounds(UIRect _r) noexcept
-	{
-		this->bounds_ = _r;
-	};
-
-	const UIRect& UIObject::bounds() const noexcept
-	{
-		return this->bounds_;
-	};
-
-	void UIObject::draw_self()
-	{};
-
-	void UIObject::draw()
-	{
-		this->draw_self();
-	};
-
-	ColorSet<ColorRGBA_8>& UIObject::get_palette() const
-	{
-		return this->EMPTY_PALLETE;
-	};
-
-	GrowMode& UIObject::grow_mode() noexcept
-	{
-		return this->grow_mode_;
-	};
-
-	const GrowMode& UIObject::grow_mode() const noexcept
-	{
-		return this->grow_mode_;
-	};
-
-	void UIObject::grow(int16_t _dw, int16_t _dh)
-	{
-		using GBIT = GrowMode::GROW_BIT_E;
-		
-		const auto& _gmode = this->grow_mode();
-		UIRect _newBounds = this->bounds();
-		UIRect _oldBounds = this->bounds();
-
-		if (_gmode.is_set(GBIT::LEFT))
-		{
-			_newBounds.left() += _dw;
-		};
-		if (_gmode.is_set(GBIT::RIGHT))
-		{
-			_newBounds.right() += _dw;
-		};
-		if (_gmode.is_set(GBIT::TOP))
-		{
-			_newBounds.top() += _dh;
-		};
-		if (_gmode.is_set(GBIT::BOTTOM))
-		{
-			_newBounds.bottom() += _dh;
-		};
-
-		this->set_bounds(_newBounds);
-	};
-
-	UIObject::HANDLE_EVENT_RETURN UIObject::handle_event(const Event& _event)
-	{
-		return IGNORED;
-	};
-
-	UIObject::UIObject(UIRect _r) :
-		bounds_{ _r }
-	{};
-
-}
-
-namespace sae::engine::core
-{
-
-	UIGroup::ContainerT& UIGroup::get_container() noexcept
-	{
-		return this->objs_;
-	};
-	const UIGroup::ContainerT& UIGroup::get_container() const noexcept
-	{
-		return this->objs_;
-	};
-
-	void UIGroup::insert(std::shared_ptr<UIObject> _obj)
-	{
-		_obj->refresh();
-		this->get_container().push_back(std::move(_obj));
-	};
-	void UIGroup::remove(UIObject* _obj)
-	{
-		this->get_container().erase(std::find_if(this->get_container().begin(), this->get_container().end(),
-			[_obj](const auto& _o)
-			{
-				return (_o.get() == _obj);
-			}));
-	};
-
-	size_t UIGroup::child_count() const noexcept
-	{
-		return this->get_container().size();
-	};
-
-}
-
-namespace sae::engine::core
-{
-
-	UIView::HANDLE_EVENT_RETURN UIView::handle_event(const Event& _ev)
-	{
-		auto _out = UIObject::handle_event(_ev);
-		if (_out == IGNORED)
-		{
-			for (auto& o : this->children())
-			{
-				if (o->handle_event(_ev) == HANDLE_EVENT_RETURN::HANDLED)
-				{
-					_out = HANDLE_EVENT_RETURN::HANDLED;
-					break;
-				};
-			};
-		};
-		return _out;
-	};
-
-	void UIView::insert(std::shared_ptr<UIObject> _obj)
-	{
-		this->add_to_graphics_context(this->context(), _obj.get());
-		UIGroup::insert(_obj);
-	};
-
-	void UIView::remove(UIObject* _obj)
-	{
-		UIGroup::remove(_obj);
-	};
-
-	void UIView::refresh()
-	{
-		UIObject::refresh();
-		for (auto& o : this->children())
-		{
-			o->refresh();
-		};
-	};
-
-	void UIView::grow(int16_t _dw, int16_t _dh)
-	{
-		UIObject::grow(_dw, _dh);
-		for (auto& o : this->children())
-		{
-			o->grow(_dw, _dh);
-		};
-	};
-
-}
-
-namespace sae::engine::core
-{
-
-	void UIButton::handle_response(const EventResponse& _ev, const Event& _fromEvent)
-	{
-		switch (_ev.type())
-		{
-		case EventResponse::DEFERRED:
-			this->context()->push_event(_ev.get<EventResponse::DEFERRED>());
-			break;
-		case EventResponse::IMMEDIATE:
-			_ev.get<EventResponse::IMMEDIATE>().invoke(_fromEvent);
-			break;
-		default:
-			abort();
-		};
-	};
-
-	UIButton::HANDLE_EVENT_RETURN UIButton::handle_mouse_event(const Event::evMouse& _evmouse)
-	{
-		HANDLE_EVENT_RETURN _out = IGNORED;
-		
-		ScreenPoint _cpos{ _evmouse.cursor_x, _evmouse.cursor_y };
-		if (!this->bounds().intersects(_cpos))
-		{
-			return IGNORED;
-		};
-
-		switch (_evmouse.action)
-		{
-		case GLFW_PRESS:
-			switch (_evmouse.button)
-			{
-			case GLFW_MOUSE_BUTTON_1:
-				this->is_down_ = true;
-				this->down_button_ = GLFW_MOUSE_BUTTON_1;
-				_out = HANDLED;
-				break;
-			case GLFW_MOUSE_BUTTON_2:
-				this->is_down_ = true;
-				this->down_button_ = GLFW_MOUSE_BUTTON_2;
-				_out = HANDLED;
-				break;
-			default:
-				break;
-			};
-			break;
-		case GLFW_RELEASE:
-			switch (_evmouse.button)
-			{
-			case GLFW_MOUSE_BUTTON_1:
-				if (this->is_down_ && this->down_button_ == GLFW_MOUSE_BUTTON_1)
-				{
-					this->handle_response(this->on_mb1_, _evmouse);
-					this->is_down_ = false;
-				};
-				break;
-			case GLFW_MOUSE_BUTTON_2:
-				if (this->is_down_ && this->down_button_ == GLFW_MOUSE_BUTTON_2)
-				{
-					this->handle_response(this->on_mb2_, _evmouse);
-					this->is_down_ = false;
-				};
-				break;
-			default:
-				break;
-			};
-			break;
-		default:
-			break;
-		};
-		
-		return _out;
-	};
-
-	UIButton::HANDLE_EVENT_RETURN UIButton::handle_event(const Event& _event)
-	{
-		using EVENT = Event::EVENT_TYPE;
-		auto _out = UIView::handle_event(_event);
-		if (_out == IGNORED)
-		{
-			switch (_event.index())
-			{
-			case Event::EVENT_TYPE_E::MOUSE_EVENT:
-				_out = this->handle_mouse_event(_event.get<Event::EVENT_TYPE_E::MOUSE_EVENT>());
-				break;
-			default:
-				break;
-			};
-		};
-		return _out;
-	};
-
-	UIButton::UIButton(UIRect _r, const EventResponse& _leftMouse, const EventResponse& _rightMouse) :
-		UIView{ _r }, on_mb1_{ _leftMouse }, on_mb2_{ _rightMouse }
-	{};
-
-}
-
-namespace sae::engine::core
-{
-
-	void UIPushButton::handle_response(const EventResponse& _ev, const Event& _fromEvent)
-	{
-		switch (_ev.type())
-		{
-		case EventResponse::DEFERRED:
-			this->context()->push_event(_ev.get<EventResponse::DEFERRED>());
-			break;
-		case EventResponse::IMMEDIATE:
-			_ev.get<EventResponse::IMMEDIATE>().invoke(_fromEvent);
-			break;
-		default:
-			abort();
-		};
-	};
-
-	UIPushButton::HANDLE_EVENT_RETURN UIPushButton::handle_mouse_event(const Event::evMouse& _evmouse)
-	{
-		HANDLE_EVENT_RETURN _out = IGNORED;
-
-		ScreenPoint _cpos{ _evmouse.cursor_x, _evmouse.cursor_y };
-		if (!this->bounds().intersects(_cpos))
-		{
-			return IGNORED;
-		};
-
-		switch (_evmouse.action)
-		{
-		case GLFW_PRESS:
-			if (!this->is_down_)
-			{
-				this->is_down_ = true;
-				this->down_button_ = _evmouse.button;
-				this->handle_response(this->on_push_, _evmouse);
-				_out = HANDLED;
-			};
-			break;
-		case GLFW_RELEASE:
-			if (this->is_down_ && _evmouse.button == this->down_button_)
-			{
-				this->handle_response(this->on_release_, _evmouse);
-				this->is_down_ = false;
-				_out = HANDLED;
-			}
-			break;
-		default:
-			break;
-		};
-
-		return _out;
-	};
-	UIPushButton::HANDLE_EVENT_RETURN UIPushButton::handle_cursor_event(const Event::evCursorMove& _event)
-	{
-		if (!this->is_hovered_ && !this->is_down_ && this->bounds().intersects({ _event.cursor_x, _event.cursor_y }))
-		{
-			this->is_hovered_ = true;
-			this->handle_response(this->on_mouse_enter_, _event);
-			return HANDLED;
-		}
-		else if (!this->bounds().intersects({ _event.cursor_x, _event.cursor_y }))
-		{
-			this->is_hovered_ = false;
-			this->is_down_ = false;
-			this->handle_response(this->on_mouse_leave_, _event);
-			return HANDLED;
-		};
-		return IGNORED;
-	};
-
-	UIPushButton::HANDLE_EVENT_RETURN UIPushButton::handle_event(const Event& _event)
-	{
-		using EVENT = Event::EVENT_TYPE;
-		auto _out = UIView::handle_event(_event);
-		if (_out == IGNORED)
-		{
-			switch (_event.index())
-			{
-			case Event::EVENT_TYPE_E::MOUSE_EVENT:
-				_out = this->handle_mouse_event(_event.get<Event::EVENT_TYPE_E::MOUSE_EVENT>());
-				break;
-			case Event::EVENT_TYPE_E::CURSOR_MOVE:
-				_out = this->handle_cursor_event(_event.get<Event::EVENT_TYPE_E::CURSOR_MOVE>());
-				break;
-			default:
-				break;
-			};
-		};
-		return _out;
-	};
-
-	UIPushButton::UIPushButton(	UIRect _r, const EventResponse& _onPush, const EventResponse& _onRelease,
-								const EventResponse& _onMouseEnter, const EventResponse& _onMouseLeave) :
-		UIView{ _r }, on_push_{ _onPush }, on_release_{ _onRelease }, on_mouse_enter_{ _onMouseEnter }, on_mouse_leave_{ _onMouseLeave }
-	{};
-
-}
-
-namespace sae::engine::core
-{
-	void UIToggleButton::handle_response(const EventResponse& _ev, const Event& _fromEvent)
-	{
-		switch (_ev.type())
-		{
-		case EventResponse::DEFERRED:
-			this->context()->push_event(_ev.get<EventResponse::DEFERRED>());
-			break;
-		case EventResponse::IMMEDIATE:
-			_ev.get<EventResponse::IMMEDIATE>().invoke(_fromEvent);
-			break;
-		default:
-			abort();
-		};
-	};
-
-	UIToggleButton::HANDLE_EVENT_RETURN UIToggleButton::handle_mouse_event(const Event::evMouse& _evmouse)
-	{
-		HANDLE_EVENT_RETURN _out = IGNORED;
-		if (!this->bounds().intersects({ _evmouse.cursor_x, _evmouse.cursor_y }))
-		{
-			return IGNORED;
-		};
-
-		if (this->is_down_ && _evmouse.action == GLFW_RELEASE)
-		{
-			this->is_active_ = !this->is_active_;
-			if (this->is_active_)
-			{
-				this->state_ = BUTTON_STATE::HOVERED_ACTIVE;
-				this->handle_response(this->on_toggle_on_, _evmouse);
-			}
-			else
-			{
-				this->state_ = BUTTON_STATE::HOVERED_INACTIVE;
-				this->handle_response(this->on_toggle_off_, _evmouse);
-			};
-			this->context()->blackboard().at(this->bb_key_) = this->is_active_;
-			this->is_down_ = false;
-		}
-		else if(!this->is_down_ && _evmouse.action == GLFW_PRESS)
-		{
-			if (this->is_active_)
-			{
-				this->state_ = BUTTON_STATE::PUSHED_ACTIVE;
-			}
-			else
-			{
-				this->state_ = BUTTON_STATE::PUSHED_INACTIVE;
-			};
-			this->is_down_ = true;
-		};
-
-		return _out;
-	};
-	UIToggleButton::HANDLE_EVENT_RETURN UIToggleButton::handle_cursor_event(const Event::evCursorMove& _event)
-	{
-		HANDLE_EVENT_RETURN _out = IGNORED;
-		bool _isect = this->bounds().intersects({ _event.cursor_x, _event.cursor_y });
-		
-		if (this->is_hovered_ && !_isect)
-		{
-			if (this->is_active_)
-			{
-				this->state_ = BUTTON_STATE::RESTING_ACTIVE;
-			}
-			else
-			{
-				this->state_ = BUTTON_STATE::RESTING_INACTIVE;
-			};
-			this->is_hovered_ = false;
-			this->is_down_ = false;
-		}
-		else if (!this->is_hovered_ && _isect && !this->is_down_)
-		{
-			if (this->is_active_)
-			{
-				this->state_ = BUTTON_STATE::HOVERED_ACTIVE;
-			}
-			else
-			{
-				this->state_ = BUTTON_STATE::HOVERED_INACTIVE;
-			};
-			this->is_hovered_ = true;
-		};
-	
-		return _out;
-	};
-	UIToggleButton::HANDLE_EVENT_RETURN UIToggleButton::handle_event(const Event& _event)
-	{
-		using EVENT = Event::EVENT_TYPE;
-		auto _out = UIView::handle_event(_event);
-		if (_out == IGNORED)
-		{
-			switch (_event.index())
-			{
-			case EVENT::MOUSE_EVENT:
-				this->handle_mouse_event(_event.get<EVENT::MOUSE_EVENT>());
-				break;
-			case EVENT::CURSOR_MOVE:
-				this->handle_cursor_event(_event.get<EVENT::CURSOR_MOVE>());
-				break;
-			default:
-				break;
-			};
-		};
-		return _out;
-	};
-
-	UIToggleButton::UIToggleButton(UIRect _r, const EventResponse& _onToggleOn, const EventResponse& _onToggleOff) : 
-		UIView{ _r }, on_toggle_on_{ _onToggleOn }, on_toggle_off_{ _onToggleOff }
-	{
-		
-	};
-
-}
-
-
-namespace sae::engine::core
-{
-	void GFXWindow::glfw_mouse_button_callback(GLFWwindow* _window, int _button, int _action, int _mods)
-	{
-		auto _ptr = (GFXWindow*)glfwGetWindowUserPointer(_window);
-		if (_ptr)
-		{
-			Event::evMouse _evm{};
-			_evm.action = _action;
-			_evm.button = _button;
-			_evm.mods = _mods;
-
-			auto _cursorPos = Cursor::get_position(_window);
-			_evm.cursor_x = _cursorPos.x;
-			_evm.cursor_y = _cursorPos.y;
-
-			_ptr->context()->push_event(_evm);
-		};
-	};
-
-	void GFXWindow::glfw_key_callback(GLFWwindow* _window, int _key, int _scancode, int _action, int _mods)
-	{
-		auto _ptr = (GFXWindow*)glfwGetWindowUserPointer(_window);
-		if (_ptr)
-		{
-			Event::evKey _event{};
-			_event.key = _key;
-			_event.scancode = _scancode;
-			_event.action = _action;
-			_event.mods = _mods;
-			_ptr->context()->push_event(_event);
-		};
-	};
-
-	void GFXWindow::glfw_cursor_move_callback(GLFWwindow* _window, double _x, double _y)
-	{
-		auto _ptr = (GFXWindow*)glfwGetWindowUserPointer(_window);
-		if (_ptr)
-		{
-			Event::evCursorMove _evm{};
-			_evm.cursor_x = (int16_t)_x;
-			_evm.cursor_y = (int16_t)_y;
-			_ptr->context()->push_event(_evm);
-		};
-	};
-	void GFXWindow::glfw_cursor_enter_callback(GLFWwindow* _window, int _entered)
-	{
-		auto _ptr = (GFXWindow*)glfwGetWindowUserPointer(_window);
-		if (_ptr)
-		{
-			Event::evCursorWindowBounds _event{};
-			if (_entered)
-			{
-				_event.action == Event::evCursorWindowBounds::ENTER;
-			}
-			else
-			{
-				_event.action == Event::evCursorWindowBounds::EXIT;
-			};
-			_ptr->context()->push_event(_event);
-		};
-	};
-
-	void GFXWindow::glfw_framebuffer_resize_callback(GLFWwindow* _window, int _width, int _height)
-	{
-		auto _ptr = (GFXWindow*)glfwGetWindowUserPointer(_window);
-		if (_ptr)
-		{
-			Event::evWindowResize _event{};
-			_event.width = _width;
-			_event.height = _height;
-			_ptr->context()->push_event(_event);
-		};
-	};
-
-	void GFXWindow::glfw_window_close_callback(GLFWwindow* _window)
-	{
-		auto _ptr = (GFXWindow*)glfwGetWindowUserPointer(_window);
-		if (_ptr)
-		{
-			_ptr->context()->push_event(Event::evWindowClose{});
-		};
-	};
-
-	void GFXWindow::glfw_window_refresh_callback(GLFWwindow* _window)
-	{
-		int _w = 0;
-		int _h = 0;
-		glfwGetFramebufferSize(_window, &_w, &_h);
-		GFXWindow::glfw_framebuffer_resize_callback(_window, _w, _h);
-	};
-
-
-
-	void GFXWindow::grow(int16_t _dw, int16_t _dh)
-	{
-		UIView::grow(_dw, _dh);
-		glViewport(this->bounds().left(), this->bounds().top(), this->bounds().width(), this->bounds().height());
-	};
-
-	void GFXWindow::draw()
-	{
-		this->make_current();
-		UIView::draw();
-		this->swap_buffers();
-	};
-
-	void GFXWindow::refresh()
-	{
-		this->glfw_window_refresh_callback(this->get());
-	};
-
-	GFXWindow::HANDLE_EVENT_RETURN GFXWindow::handle_event(const Event& _event)
-	{
-		using EVENT = Event::EVENT_TYPE;
-		auto _out = UIView::handle_event(_event);
-		if (_out == IGNORED)
-		{
-			
-		};
-		return _out;
-	};
-
-	GFXWindow::GFXWindow(ScreenPoint::pixels_t _width, ScreenPoint::pixels_t _height, const std::string& _title) : 
-		Window{ glfwCreateWindow(_width, _height, _title.c_str(), NULL, NULL) }, 
-		UIView{ UIRect{ { 0, 0 }, { _width, _height } } }
-	{
-		this->add_to_context(this);
-
-		glfwSetWindowUserPointer(this->get(), this);
-		glfwSetMouseButtonCallback(this->get(), &GFXWindow::glfw_mouse_button_callback );
-
-		glfwSetKeyCallback(this->get(), &GFXWindow::glfw_key_callback);
-
-		glfwSetCursorPosCallback(this->get(), &GFXWindow::glfw_cursor_move_callback );
-		glfwSetCursorEnterCallback(this->get(), &GFXWindow::glfw_cursor_enter_callback );
-
-		glfwSetWindowCloseCallback(this->get(), &GFXWindow::glfw_window_close_callback);
-		glfwSetFramebufferSizeCallback(this->get(), &GFXWindow::glfw_framebuffer_resize_callback);
-
-		glfwSetWindowRefreshCallback(this->get(), &GFXWindow::glfw_window_refresh_callback);
-
-	};
-
-}
+#include <cassert>
+
+namespace sae::engine::core {
+/**
+ * @brief Sets a grow bit to 1
+ */
+GrowMode &GrowMode::set(GROW_BIT_E _bit) noexcept {
+  this->bits_ |= (uint8_t)_bit;
+  return *this;
+};
+
+/**
+ * @brief Sets a grow bit to 0
+ */
+GrowMode &GrowMode::clear(GROW_BIT_E _bit) noexcept {
+  this->bits_ &= ~((uint8_t)_bit);
+  return *this;
+};
+
+/**
+ * @brief Sets the specified grow bit to the specified value
+ * @param _bit Bit to set
+ * @param _val Value to set it to
+ */
+GrowMode &GrowMode::set_to(GROW_BIT_E _bit, bool _val) noexcept {
+  if (_val) {
+    return this->set(_bit);
+  } else {
+    return this->clear(_bit);
+  };
+};
+
+} // namespace sae::engine::core
+
+namespace sae::engine::core {
+
+void GFXObject::on_state_change(STATE_BITS _b, bool _to){};
+
+void GFXObject::set_state_bit(STATE_BITS _bit) noexcept {
+  this->state_ |= _bit;
+  this->on_state_change(_bit, true);
+};
+void GFXObject::clear_state_bit(STATE_BITS _bit) noexcept {
+  this->state_ &= ~_bit;
+  this->on_state_change(_bit, false);
+};
+bool GFXObject::check_state_bit(STATE_BITS _bit) const noexcept {
+  return (this->state_ & _bit) != 0;
+};
+
+void GFXObject::set_parent(GFXView *_to) noexcept { this->parent_ = _to; };
+void GFXObject::set_context(GFXContext *_to) {
+  // assert(!this->context());
+  this->context_ = _to;
+};
+
+GFXView *GFXObject::parent() const noexcept { return this->parent_; };
+bool GFXObject::has_parent() const noexcept {
+  return this->parent() != nullptr;
+};
+
+GFXContext *GFXObject::context() const noexcept { return this->context_; };
+
+void GFXObject::handle_event_type(const Event::evGrow &_event) {
+  this->grow(_event.dw, _event.dh);
+};
+
+Rect &GFXObject::bounds() noexcept { return this->bounds_; };
+const Rect &GFXObject::bounds() const noexcept { return this->bounds_; };
+
+ZLayer &GFXObject::zlayer() noexcept { return this->z_; };
+const ZLayer &GFXObject::zlayer() const noexcept { return this->z_; };
+
+GrowMode &GFXObject::grow_mode() noexcept { return this->grow_mode_; };
+const GrowMode &GFXObject::grow_mode() const noexcept {
+  return this->grow_mode_;
+};
+
+void GFXObject::handle_event(Event &_event){};
+
+void GFXObject::refresh(){};
+void GFXObject::grow(pixels_t _dw, pixels_t _dh) {
+  using GBIT = GrowMode::GROW_BIT_E;
+
+  const auto &_gmode = this->grow_mode();
+  auto &_b = this->bounds();
+
+  if (_gmode.is_set(GBIT::gmLeft)) {
+    _b.left() += _dw;
+  };
+  if (_gmode.is_set(GBIT::gmRight)) {
+    _b.right() += _dw;
+  };
+  if (_gmode.is_set(GBIT::gmTop)) {
+    _b.top() += _dh;
+  };
+  if (_gmode.is_set(GBIT::gmBottom)) {
+    _b.bottom() += _dh;
+  };
+};
+
+GFXObject::GFXObject(Rect _r) : bounds_{_r} {};
+
+GFXObject::GFXObject() : GFXObject{Rect{}} {};
+GFXObject::~GFXObject(){};
+
+} // namespace sae::engine::core
+
+namespace sae::engine::core {
+void GFXGroup::insert_child(value_type _obj) {
+  this->children().push_back(std::move(_obj));
+};
+void GFXGroup::remove_child(GFXObject *_obj) {
+  this->children().erase(
+      std::find_if(this->children().begin(), this->children().end(),
+                   [_obj](const auto &o) { return o.get() == _obj; }));
+};
+
+void GFXGroup::handle_event(Event &_event) {
+  GFXObject::handle_event(_event);
+  if (_event) {
+    for (auto &o : this->children()) {
+      o->handle_event(_event);
+      if (!_event) {
+        break;
+      };
+    };
+  };
+};
+
+void GFXGroup::set_context(GFXContext *_to) {
+  GFXObject::set_context(_to);
+  for (auto &o : this->children()) {
+    o->set_context(_to);
+  };
+};
+
+GFXGroup::container_type &GFXGroup::children() noexcept {
+  return this->children_;
+};
+const GFXGroup::container_type &GFXGroup::children() const noexcept {
+  return this->children_;
+};
+
+void GFXGroup::refresh() {
+  GFXObject::refresh();
+  for (auto &o : this->children()) {
+    o->refresh();
+  };
+};
+void GFXGroup::grow(pixels_t _dw, pixels_t _dh) {
+  GFXObject::grow(_dw, _dh);
+  for (auto &o : this->children()) {
+    o->grow(_dw, _dh);
+  };
+};
+
+GFXGroup::GFXGroup(Rect _r) : GFXObject{_r} {};
+
+} // namespace sae::engine::core
+
+namespace sae::engine::core {
+
+GFXView::iterator GFXView::begin() noexcept {
+  return this->children().begin();
+};
+GFXView::const_iterator GFXView::begin() const noexcept {
+  return this->children().cbegin();
+};
+GFXView::const_iterator GFXView::cbegin() const noexcept {
+  return this->children().cbegin();
+};
+
+GFXView::iterator GFXView::end() noexcept { return this->children().end(); };
+GFXView::const_iterator GFXView::end() const noexcept {
+  return this->children().cend();
+};
+GFXView::const_iterator GFXView::cend() const noexcept {
+  return this->children().cend();
+};
+
+GFXView::size_type GFXView::child_count() const noexcept {
+  return this->children().size();
+};
+
+GFXView::reference GFXView::first_child() noexcept {
+  return this->children().front();
+};
+GFXView::const_reference GFXView::first_child() const noexcept {
+  return this->children().front();
+};
+
+GFXView::reference GFXView::last_child() noexcept {
+  return this->children().back();
+};
+GFXView::const_reference GFXView::last_child() const noexcept {
+  return this->children().back();
+};
+
+GFXView::reference GFXView::child(size_t i) { return this->children().at(i); };
+GFXView::const_reference GFXView::child(size_t i) const {
+  return this->children().at(i);
+};
+
+void GFXView::clear() noexcept { this->children().clear(); };
+
+void GFXView::insert(value_type _obj) {
+  if (_obj->has_parent()) {
+    assert(_obj->parent() != this);
+    _obj->parent()->remove(_obj.get());
+  };
+  assert(!_obj->has_parent());
+  _obj->set_parent(this);
+  if (_obj->context() == nullptr) {
+    assert(this->context() != nullptr);
+    _obj->set_context(this->context());
+  };
+  GFXGroup::insert_child(_obj);
+};
+void GFXView::emplace(GFXObject *_obj) { this->insert(value_type{_obj}); };
+
+void GFXView::remove(GFXObject *_obj) { GFXGroup::remove_child(_obj); };
+
+GFXView::GFXView(GFXContext *_context, Rect _r) : GFXGroup{_r} {
+  this->set_context(_context);
+};
+
+} // namespace sae::engine::core
+
+namespace sae::engine::core {
+void GFXContext::draw() {
+  for (auto &o : this->artists_) {
+    o->draw();
+  };
+};
+
+void GFXContext::handle_event(Event &_event) {
+  for (auto &a : this->artists_) {
+    a->handle_event(_event);
+  };
+  GFXView::handle_event(_event);
+};
+
+void GFXContext::register_artist(const std::string &_name,
+                                 std::unique_ptr<IArtist> _artist) {
+  this->artist_names_.insert({_name, _artist.get()});
+  this->artists_.push_back(std::move(_artist));
+};
+IArtist *GFXContext::find_artist(const std::string &_name) {
+  return this->artist_names_.at(_name);
+};
+
+GLFWwindow *GFXContext::window() const noexcept { return this->window_; };
+
+GFXContext::GFXContext(GLFWwindow *_window, Rect _r)
+    : GFXView{this, _r}, window_{_window} {};
+GFXContext::GFXContext(GLFWwindow *_window) : GFXContext{_window, {}} {};
+
+GFXContext::~GFXContext() { this->clear(); };
+
+} // namespace sae::engine::core

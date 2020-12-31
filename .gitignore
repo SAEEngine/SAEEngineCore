@@ -10,9 +10,13 @@
 *.userosscache
 *.sln.docstates
 
+
+.clang-format
+clang-format-all
 .vs
 .vscode
-
+build.sh
+buildlog
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
 
