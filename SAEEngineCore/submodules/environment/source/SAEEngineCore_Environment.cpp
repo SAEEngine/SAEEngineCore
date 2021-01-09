@@ -118,6 +118,11 @@ namespace sae::engine::core
 		glfwSwapBuffers(this->get());
 	};
 
+	bool Window::is_open() const
+	{
+		return glfwWindowShouldClose(this->get()) == 0;
+	};
+
 	Window::Window(pointer _ptr) :
 		ptr_{ _ptr }
 	{
@@ -147,13 +152,13 @@ namespace sae::engine::core
 namespace sae::engine::core
 {
 
-	Window_Ref& Window_Ref::operator=(pointer _window) noexcept
+	WindowRef& WindowRef::operator=(pointer _window) noexcept
 	{
 		this->ptr_ = _window;
 		return *this;
 	};
 
-	Window_Ref& Window_Ref::operator=(const Window& _window) noexcept
+	WindowRef& WindowRef::operator=(const Window& _window) noexcept
 	{
 		this->ptr_ = _window.get();
 		return *this;

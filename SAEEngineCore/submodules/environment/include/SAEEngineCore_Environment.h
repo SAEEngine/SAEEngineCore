@@ -69,7 +69,8 @@ namespace sae::engine::core
 		using pointer = GLFWwindow*;
 
 		bool good() const noexcept { return this->ptr_ != nullptr; };
-		explicit operator bool() const noexcept { return this->good(); };
+		
+		bool is_open() const;
 
 		pointer get() const noexcept { return this->ptr_; };
 		void release() noexcept { this->ptr_ = nullptr; };
@@ -78,6 +79,8 @@ namespace sae::engine::core
 		void make_current();
 
 		void swap_buffers();
+
+		operator pointer() const noexcept { return this->get(); };
 
 		friend inline bool operator==(const Window& _lhs, pointer _rhs) noexcept
 		{
@@ -118,7 +121,7 @@ namespace sae::engine::core
 
 	};
 
-	class Window_Ref
+	class WindowRef
 	{
 	public:
 
@@ -130,61 +133,61 @@ namespace sae::engine::core
 		bool good() const noexcept { return this->get() != nullptr; };
 		explicit operator bool() const noexcept { return this->good(); };
 
-		friend inline bool operator==(const Window_Ref& _lhs, const Window_Ref& _rhs) noexcept
+		friend inline bool operator==(const WindowRef& _lhs, const WindowRef& _rhs) noexcept
 		{
 			return (_lhs.get() == _rhs.get());
 		};
-		friend inline bool operator!=(const Window_Ref& _lhs, const Window_Ref& _rhs) noexcept
+		friend inline bool operator!=(const WindowRef& _lhs, const WindowRef& _rhs) noexcept
 		{
 			return (_lhs.get() != _rhs.get());
 		};
 
-		friend inline bool operator==(const Window_Ref& _lhs, pointer _rhs) noexcept
+		friend inline bool operator==(const WindowRef& _lhs, pointer _rhs) noexcept
 		{
 			return (_lhs.get() == _rhs);
 		};
-		friend inline bool operator!=(const Window_Ref& _lhs, pointer _rhs) noexcept
+		friend inline bool operator!=(const WindowRef& _lhs, pointer _rhs) noexcept
 		{
 			return (_lhs.get() != _rhs);
 		};
 
-		friend inline bool operator==(pointer _lhs, const Window_Ref& _rhs) noexcept
+		friend inline bool operator==(pointer _lhs, const WindowRef& _rhs) noexcept
 		{
 			return (_lhs == _rhs.get());
 		};
-		friend inline bool operator!=(pointer _lhs, const Window_Ref& _rhs) noexcept
+		friend inline bool operator!=(pointer _lhs, const WindowRef& _rhs) noexcept
 		{
 			return (_lhs != _rhs.get());
 		};
 
-		friend inline bool operator==(const Window_Ref& _lhs, const Window& _rhs) noexcept
+		friend inline bool operator==(const WindowRef& _lhs, const Window& _rhs) noexcept
 		{
 			return (_lhs.get() == _rhs.get());
 		};
-		friend inline bool operator!=(const Window_Ref& _lhs, const Window& _rhs) noexcept
+		friend inline bool operator!=(const WindowRef& _lhs, const Window& _rhs) noexcept
 		{
 			return (_lhs.get() != _rhs.get());
 		};
 
-		friend inline bool operator==(const Window& _lhs, const Window_Ref& _rhs) noexcept
+		friend inline bool operator==(const Window& _lhs, const WindowRef& _rhs) noexcept
 		{
 			return (_lhs.get() == _rhs.get());
 		};
-		friend inline bool operator!=(const Window& _lhs, const Window_Ref& _rhs) noexcept
+		friend inline bool operator!=(const Window& _lhs, const WindowRef& _rhs) noexcept
 		{
 			return (_lhs.get() != _rhs.get());
 		};
 
-		Window_Ref() noexcept = default;
-		Window_Ref(pointer _window) noexcept :
+		WindowRef() noexcept = default;
+		WindowRef(pointer _window) noexcept :
 			ptr_{ _window }
 		{};
-		Window_Ref& operator=(pointer _window) noexcept;
+		WindowRef& operator=(pointer _window) noexcept;
 
-		Window_Ref(const Window& _window) noexcept :
+		WindowRef(const Window& _window) noexcept :
 			ptr_{ _window.get() }
 		{};
-		Window_Ref& operator=(const Window& _window) noexcept;
+		WindowRef& operator=(const Window& _window) noexcept;
 		
 	private:
 		pointer ptr_ = nullptr;

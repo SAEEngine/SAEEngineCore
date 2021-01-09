@@ -48,6 +48,7 @@ set(link_libs_public
 	SAEEngineCore_Event
 	SAEEngineCore_Artist
 	SAEEngineCore_Widget
+	SAEEngineCore_Environment
 )
 
 ### Add libary targets to link to below, these will be private

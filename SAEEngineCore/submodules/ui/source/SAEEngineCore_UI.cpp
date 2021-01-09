@@ -1,6 +1,208 @@
 #include "SAEEngineCore_UI.h"
 
 #include <cassert>
+#include <array>
+
+namespace sae::engine::core
+{
+	const SpecID UIPanel::VERTEX_SPEC = new_spec_id();
+
+	Artist* UIPanel::artist() const noexcept
+	{
+		return this->artist_;
+	};
+	bool UIPanel::has_artist() const noexcept
+	{
+		return this->artist() != nullptr;
+	};
+
+	bool UIPanel::handle_event_type(const Event::evUser& _event)
+	{
+		auto _out = true;
+		switch (_event)
+		{
+		case evOptionSet:
+			switch (_event.content)
+			{
+			case opDraw:
+				this->show();
+				break;
+			default:
+				_out = false;
+				break;
+			};
+			break;
+		case evOptionCleared:
+			switch (_event.content)
+			{
+			case opDraw:
+				this->hide();
+				break;
+			default:
+				_out = false;
+				break;
+			};
+			break;
+		default:
+			_out = false;
+			break;
+		};
+		return _out;
+	};
+
+
+	void UIPanel::set_context(GFXContext* _context)
+	{
+		GFXObject::set_context(_context);
+		this->set_artist(this->context()->find_artist(this->VERTEX_SPEC));
+		if (this->check_option(opDraw))
+		{
+			this->show();
+		};
+	};
+	void UIPanel::set_artist(Artist* _artist)
+	{
+		if (this->has_artist())
+		{
+			this->artist()->remove(this);
+		};
+		this->artist_ = _artist;
+	};
+
+	namespace
+	{
+		union UIPanelVertex
+		{
+			struct
+			{
+				float_t x;
+				float_t y;
+				float_t z;
+				uint8_t r;
+				uint8_t g;
+				uint8_t b;
+				uint8_t a;
+			};
+			std::array<std::byte, (sizeof(float_t) * 3) + (sizeof(uint8_t) * 4)> arr{};
+		};
+
+		UIPanelVertex make_panel_vertex(float_t _x, float_t _y, float_t _z, UIPanel::color_type _col)
+		{
+			UIPanelVertex _v{};
+			_v.x = _x;
+			_v.y = _y;
+			_v.z = _z;
+			_v.r = _col.r;
+			_v.g = _col.g;
+			_v.b = _col.b;
+			_v.a = _col.a;
+			return _v;
+		};
+
+	}
+
+	void UIPanel::show()
+	{
+		assert(this->has_artist());
+
+		VertexData _vdata{ VERTEX_SPEC, 6, (sizeof(float_t) * 3) + (sizeof(uint8_t) * 4) };
+		
+		float_t x0 = (float_t)this->bounds().left();
+		float_t y0 = (float_t)this->bounds().bottom();
+
+		float_t x1 = (float_t)this->bounds().right();
+		float_t y1 = (float_t)this->bounds().top();
+
+		float_t z = (float_t)this->bounds().left();
+
+		UIPanelVertex _v0 = make_panel_vertex(x0, y0, z, this->color());
+		UIPanelVertex _v1 = make_panel_vertex(x1, y0, z, this->color());
+		UIPanelVertex _v2 = make_panel_vertex(x0, y1, z, this->color());
+		UIPanelVertex _v3 = make_panel_vertex(x1, y1, z, this->color());
+
+		auto _vit = _vdata.begin();
+		std::copy(_v0.arr.begin(), _v0.arr.end(), _vit);
+		_vit += _v0.arr.size();
+		std::copy(_v1.arr.begin(), _v1.arr.end(), _vit);
+		_vit += _v0.arr.size();
+		std::copy(_v2.arr.begin(), _v2.arr.end(), _vit);
+
+		_vit += _v0.arr.size();
+		std::copy(_v1.arr.begin(), _v1.arr.end(), _vit);
+		_vit += _v0.arr.size();
+		std::copy(_v2.arr.begin(), _v2.arr.end(), _vit);
+		_vit += _v0.arr.size();
+		std::copy(_v3.arr.begin(), _v3.arr.end(), _vit);
+
+
+
+
+		this->artist()->insert(this, _vdata);
+	};
+	void UIPanel::hide()
+	{
+		assert(this->has_artist());
+		this->artist()->remove(this);
+
+	};
+
+	UIPanel::color_type& UIPanel::color() noexcept
+	{
+		return this->color_;
+	};
+	const UIPanel::color_type& UIPanel::color() const noexcept
+	{ 
+		return this->color_;
+	};
+
+	void UIPanel::refresh()
+	{
+		if (this->check_option(opDraw))
+		{
+			this->hide();
+			this->show();
+		};
+		GFXObject::refresh();
+	};
+	void UIPanel::handle_event(Event& _event)
+	{
+		GFXObject::handle_event(_event);
+		using EVENT = Event::EVENT_TYPE_E;
+		switch (_event.index())
+		{
+		case EVENT::USER_EVENT:
+			if (this->handle_event_type(_event.get<EVENT::USER_EVENT>()))
+			{
+				_event.clear();
+			};
+			break;
+		default:
+			break;
+		};
+	};
+
+	UIPanel::UIPanel(Rect _r, color_type _col) :
+		GFXObject{ _r }, color_{ _col }
+	{};
+	UIPanel::UIPanel(color_type _col) :
+		UIPanel{ Rect{}, _col }
+	{};
+	UIPanel::UIPanel(Rect _r) :
+		UIPanel{ _r, color_type{} }
+	{};
+	UIPanel::UIPanel() :
+		UIPanel{ Rect{}, color_type{} }
+	{};
+
+	UIPanel::~UIPanel()
+	{
+		if (this->has_artist() && this->check_option(opDraw))
+		{
+			this->hide();
+		};
+	};
+
+}
 
 namespace sae::engine::core
 {

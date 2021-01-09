@@ -5,6 +5,7 @@
 #include <SAEEngineCore_Event.h>
 #include <SAEEngineCore_Artist.h>
 #include <SAEEngineCore_Widget.h>
+#include <SAEEngineCore_Environment.h>
 
 #include <cstdint>
 #include <vector>
@@ -93,39 +94,80 @@ namespace sae::engine::core
 	class GFXObject
 	{
 	public:
-		enum STATE_BITS : uint8_t
+
+		/**
+		 * @brief Option flag bit masks
+		*/
+		enum OPTION_BITS : uint8_t
 		{
-			stActive = 0x01,
-			stSelected = 0x02,
-			stDisplayed = 0x04
+			opDraw = 0x01,
+			opInput = 0x02
 		};
+
+		/**
+		 * @brief Event thrown on option set to true. Content is set to the OPTION_BIT that was changed. Only thrown on change.
+		*/
+		constexpr static Event::evUser evOptionSet{ 101 };
+
+		/**
+		 * @brief Event thrown on option set to false. Content is set to the OPTION_BIT that was changed. Only thrown on change.
+		*/
+		constexpr static Event::evUser evOptionCleared{ 102 };
+
+		/**
+		 * @brief Sets an option bit
+		 * @param _op Option bit
+		 * @param _to Value to set it to
+		*/
+		void set_option(OPTION_BITS _op, bool _to);
+
+		/**
+		 * @brief Returns the current value of an option
+		 * @param _op Option bit
+		 * @return Option value
+		*/
+		bool check_option(OPTION_BITS _op) const noexcept;
 
 	protected:
 		friend GFXGroup;
 		friend GFXView;
 		friend GFXContext;
 
-		virtual void on_state_change(STATE_BITS _b, bool _to);
-
-	private:
-		void set_state_bit(STATE_BITS _bit) noexcept;
-
-		void clear_state_bit(STATE_BITS _bit) noexcept;
-
-		bool check_state_bit(STATE_BITS _bit) const noexcept;
-
-		void handle_event_type(const Event::evGrow& _event);
-
-	protected:
+		/**
+		 * @brief Sets the objects pointer pointer
+		 * @param _to Parent view pointer
+		*/
 		void set_parent(GFXView* _to) noexcept;
+
+		/**
+		 * @brief Sets the objects context pointer
+		 * @param _to Context pointer
+		*/
 		virtual void set_context(GFXContext* _to);
 
 	public:
+
+		/**
+		 * @brief Returns the parent view of this object
+		 * @return Parent (GFXView) pointer 
+		*/
 		GFXView* parent() const noexcept;
+	
+		/**
+		 * @brief Returns true if the object has a parent pointer currently set
+		*/
 		bool has_parent() const noexcept;
 
+		/**
+		 * @brief Returns the context that this object belongs to
+		 * @return Context pointer
+		*/
 		GFXContext* context() const noexcept;
 
+		/**
+		 * @brief Called when events are propogated to this object
+		 * @param _event Event object
+		*/
 		virtual void handle_event(Event& _event);
 
 		Rect& bounds() noexcept;
@@ -137,11 +179,27 @@ namespace sae::engine::core
 		GrowMode& grow_mode() noexcept;
 		const GrowMode& grow_mode() const noexcept;
 
+		/**
+		 * @brief Any changes made since the last call to refresh() should be present or otherwise viewable upon a new call to refresh()
+		*/
 		virtual void refresh();
+
+		/**
+		 * @brief Applies a size change to the object
+		 * @param _dw Change in parent width
+		 * @param _dh Change in parent height
+		*/
 		virtual void grow(pixels_t _dw, pixels_t _dh);
 
+		/**
+		 * @brief Constructs a GFXObject with the provided bounds
+		 * @param _r Bounds
+		*/
 		GFXObject(Rect _r);
 		
+		/**
+		 * @brief Constructs a GFXObject with default bounds
+		*/
 		GFXObject();
 		
 		GFXObject(const GFXObject& other) = delete;
@@ -155,7 +213,7 @@ namespace sae::engine::core
 		GFXContext* context_ = nullptr;
 		GFXView* parent_ = nullptr;
 		GrowMode grow_mode_{};
-		uint8_t state_ = 0x00;
+		uint8_t options_ = opDraw | opInput;
 		Rect bounds_{};
 		ZLayer z_{};
 	};
@@ -230,11 +288,19 @@ namespace sae::engine::core
 		void clear() noexcept;
 
 		void insert(value_type _obj);
+
+		/**
+		 * @brief Convience function that calls insert() by creating a shared_ptr from the provided pointer. See insert() for info.
+		 * @param _obj Owning object pointer
+		*/
 		void emplace(GFXObject* _obj);
 
 		void remove(GFXObject* _obj);
 
+		
 		GFXView(GFXContext* _context, Rect _r);
+		GFXView(GFXContext* _context);
+
 
 	};
 
@@ -244,24 +310,30 @@ namespace sae::engine::core
 	class GFXContext : public GFXView
 	{
 	public:
-
 		void handle_event(Event& _event) override;
+		
 		virtual void draw();
+		virtual void idle();
 
-		void register_artist(const std::string& _name, std::unique_ptr<IArtist> _artist);
-		IArtist* find_artist(const std::string& _name);
+		void update();
 
-		GLFWwindow* window() const noexcept;
+		void register_artist(std::unique_ptr<Artist> _artist);
+		Artist* find_artist(const SpecID _id);
 
-		GFXContext(GLFWwindow* _window, Rect _r);
-		GFXContext(GLFWwindow* _window);
+
+
+		Window& window() noexcept;
+		const Window& window() const noexcept;
+
+		GFXContext(Window _window, Rect _r);
+		GFXContext(Window _window);
 
 		~GFXContext();
 
 	private:
-		GLFWwindow* window_ = nullptr;
-		std::vector<std::unique_ptr<IArtist>> artists_{};
-		std::unordered_map<std::string, IArtist*> artist_names_{};
+		Window window_;
+		std::unordered_map<SpecID, std::unique_ptr<Artist>> artists_{};
+		std::vector<Artist*> artist_vec_{};
 
 	};
 

@@ -6,6 +6,53 @@
 
 namespace sae::engine::core
 {
+
+
+	class UIPanel : public GFXObject
+	{
+	public:
+		using color_type = ColorRGBA_8;
+		static const SpecID VERTEX_SPEC;
+		
+	private:
+		Artist* artist() const noexcept;
+		bool has_artist() const noexcept;
+
+		bool handle_event_type(const Event::evUser& _event);
+		
+	protected:
+		void set_context(GFXContext* _context) override;
+		void set_artist(Artist* _artist);
+
+		void show();
+		void hide();
+
+	public:
+		color_type& color() noexcept;
+		const color_type& color() const noexcept;
+
+		void refresh() override;
+		void handle_event(Event& _event) override;
+
+
+
+
+
+
+		UIPanel(Rect _r, color_type _col);
+		UIPanel(color_type _col);
+		UIPanel(Rect _r);
+
+		UIPanel();
+
+		~UIPanel();
+
+	private:
+		color_type color_{};
+		Artist* artist_ = nullptr;
+	};
+
+
 	class UIList : public GFXView
 	{
 	private:

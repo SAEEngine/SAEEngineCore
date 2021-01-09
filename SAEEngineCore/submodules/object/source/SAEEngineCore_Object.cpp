@@ -44,22 +44,42 @@ namespace sae::engine::core
 namespace sae::engine::core
 {
 
-	void GFXObject::on_state_change(STATE_BITS _b, bool _to) {};
+	void GFXObject::set_option(OPTION_BITS _op, bool _to)
+	{
+		auto _old = this->check_option(_op);
+		if (_to)
+		{
+			this->options_ |= (uint8_t)_op;
+		}
+		else
+		{
+			this->options_ &= ~(uint8_t)_op;
+		};
 
-	void GFXObject::set_state_bit(STATE_BITS _bit) noexcept
-	{
-		this->state_ |= _bit;
-		this->on_state_change(_bit, true);
+		if (_old != _to)
+		{
+			Event::evUser _ev{};
+			if (_to)
+			{
+				_ev = evOptionSet;
+				_ev.content = _op;
+			}
+			else
+			{
+				_ev = evOptionCleared;
+				_ev.content = _op;
+			};
+			Event _event{ _ev, true };
+			this->handle_event(_event);
+		};
+
 	};
-	void GFXObject::clear_state_bit(STATE_BITS _bit) noexcept
+	bool GFXObject::check_option(OPTION_BITS _op) const noexcept
 	{
-		this->state_ &= ~_bit;
-		this->on_state_change(_bit, false);
+		return (this->options_ & (uint8_t)_op) != 0;
 	};
-	bool GFXObject::check_state_bit(STATE_BITS _bit) const noexcept
-	{
-		return (this->state_ & _bit) != 0;
-	};
+
+
 
 	void GFXObject::set_parent(GFXView* _to) noexcept
 	{
@@ -67,7 +87,6 @@ namespace sae::engine::core
 	};
 	void GFXObject::set_context(GFXContext* _to)
 	{
-		//assert(!this->context());
 		this->context_ = _to;
 	};
 
@@ -85,10 +104,6 @@ namespace sae::engine::core
 		return this->context_;
 	};
 
-	void GFXObject::handle_event_type(const Event::evGrow& _event)
-	{
-		this->grow(_event.dw, _event.dh);
-	};
 
 	Rect& GFXObject::bounds() noexcept
 	{
@@ -319,11 +334,16 @@ namespace sae::engine::core
 		GFXGroup::remove_child(_obj);
 	};
 
+
 	GFXView::GFXView(GFXContext* _context, Rect _r) :
 		GFXGroup{ _r }
 	{
 		this->set_context(_context);
 	};
+	GFXView::GFXView(GFXContext* _context) :
+		GFXView{ _context, Rect{} }
+	{};
+
 
 }
 
@@ -331,41 +351,55 @@ namespace sae::engine::core
 {
 	void GFXContext::draw()
 	{
-		for (auto& o : this->artists_)
+		for (auto& a : this->artist_vec_)
 		{
-			o->draw();
+			a->draw();
 		};
 	};
 
 	void GFXContext::handle_event(Event& _event)
 	{
-		for (auto& a : this->artists_)
+		for (auto& a : this->artist_vec_)
 		{
 			a->handle_event(_event);
 		};
 		GFXView::handle_event(_event);
 	};
 
-	void GFXContext::register_artist(const std::string& _name, std::unique_ptr<IArtist> _artist)
+	void GFXContext::idle() {};
+
+	void GFXContext::update()
 	{
-		this->artist_names_.insert({ _name, _artist.get() });
-		this->artists_.push_back(std::move(_artist));
-	};
-	IArtist* GFXContext::find_artist(const std::string& _name)
-	{
-		return this->artist_names_.at(_name);
+		this->draw();
+		this->idle();
 	};
 
-	GLFWwindow* GFXContext::window() const noexcept
+
+	void GFXContext::register_artist(std::unique_ptr<Artist> _artist)
+	{
+		const auto _spec = _artist->spec();
+		this->artist_vec_.push_back(_artist.get());
+		this->artists_.insert_or_assign(_spec, std::move(_artist));
+	};
+	Artist* GFXContext::find_artist(const SpecID _id)
+	{
+		return this->artists_.at(_id).get();
+	};
+
+	Window& GFXContext::window() noexcept
+	{
+		return this->window_;
+	};
+	const Window& GFXContext::window() const noexcept
 	{
 		return this->window_;
 	};
 
-	GFXContext::GFXContext(GLFWwindow* _window, Rect _r) :
-		GFXView{ this, _r }, window_{ _window }
+	GFXContext::GFXContext(Window _window, Rect _r) :
+		GFXView{ this, _r }, window_{ std::move(_window) }
 	{};
-	GFXContext::GFXContext(GLFWwindow* _window) :
-		GFXContext{ _window, {} }
+	GFXContext::GFXContext(Window _window) :
+		GFXContext{ std::move(_window), Rect{} }
 	{};
 
 	GFXContext::~GFXContext()
