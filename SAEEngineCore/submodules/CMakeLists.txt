@@ -10,6 +10,7 @@ add_subdirectory("ui")
 add_subdirectory("widget")
 add_subdirectory("window")
 add_subdirectory("object")
+add_subdirectory("gl_object")
 
 
 

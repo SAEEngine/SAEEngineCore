@@ -7,10 +7,10 @@ cmake_minimum_required (VERSION 3.8)
 ### I added names to the fields below to make it easier to use
 ###
 project(  
-	SAEEngineCore_Environment
+	SAEEngineCore_glObject
 	LANGUAGES CXX
 	VERSION 0.0.1
-	DESCRIPTION "Wrapping types for dependencies and types to better define lifetimes"
+	DESCRIPTION "Wrapping of opengl functionality to ease the pain of writing graphical types"
 	HOMEPAGE_URL "https://github.com/SAEEngine/SAEEngineCore"
 )
 
@@ -45,19 +45,20 @@ set(source_dirs
 ###
 set(link_libs_public 
 	SAEEngineCore_Config
-	glfw
-	glad
+	SAEEngineCore_Object
+	SAEEngineCore_Environment
 )
 
 ### Add libary targets to link to below, these will be private
 ### Example:
 ###
-###		set(link_libs_public
-###			SAEEngineCore_Loggin
+###		set(link_libs_private
+###			SAEEngineCore_Logging
 ###			glfw
 ###		)
 ###
 set(link_libs_private
+	
 )
 
 ##

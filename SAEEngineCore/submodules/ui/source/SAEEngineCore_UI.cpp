@@ -33,6 +33,7 @@ namespace sae::engine::core
 			_b.right() = _b.left() + _eachWidth;
 			_b.top() = this->bounds().top();
 			_b.bottom() = this->bounds().bottom();
+			o->zlayer() = this->zlayer();
 			_x += _inc;
 		};
 	};
@@ -73,6 +74,7 @@ namespace sae::engine::core
 			_b.right() = this->bounds().right();
 			_b.top() = _y;
 			_b.bottom() = _y + _eachHeight;
+			o->zlayer() = this->zlayer();
 			_y += _inc;
 		};
 	};

@@ -23,7 +23,7 @@ namespace sae::engine::core
 			_evm.cursor_x = _cursorPos.x;
 			_evm.cursor_y = _cursorPos.y;
 
-			Event _ev{ _evm, true };
+			Event _ev{ _evm };
 			_ptr->context_->handle_event(_ev);
 
 		};
@@ -35,7 +35,7 @@ namespace sae::engine::core
 		if (_ptr)
 		{
 			Event::evScroll _event{ _x, _y };
-			Event _ev{ _event };
+			Event _ev{ _event , true };
 			_ptr->context_->handle_event(_ev);
 		};
 	};
@@ -50,7 +50,7 @@ namespace sae::engine::core
 			_event.scancode = _scancode;
 			_event.action = _action;
 			_event.mods = _mods;
-			Event _ev{ _event };
+			Event _ev{ _event, true };
 			_ptr->context_->handle_event(_ev);
 
 			if (!_ev)
@@ -67,7 +67,7 @@ namespace sae::engine::core
 		{
 			Event::evText _event{};
 			_event.codepoint = _codepoint;
-			Event _ev{ _event };
+			Event _ev{ _event, true };
 			_ptr->context_->handle_event(_ev);
 
 			if (!_ev)
@@ -107,7 +107,8 @@ namespace sae::engine::core
 			{
 				_event.action == Event::evCursorWindowBounds::EXIT;
 			};
-			Event _ev{ _event };
+			Event _ev{ _event, true };
+
 			_ptr->context_->handle_event(_ev);
 
 			if (!_ev)

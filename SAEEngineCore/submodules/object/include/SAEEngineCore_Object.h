@@ -11,6 +11,7 @@
 #include <memory>
 #include <algorithm>
 #include <string>
+#include <queue>
 
 struct GLFWwindow;
 
@@ -92,35 +93,27 @@ namespace sae::engine::core
 	*/
 	class GFXObject
 	{
-	public:
-		enum STATE_BITS : uint8_t
-		{
-			stActive = 0x01,
-			stSelected = 0x02,
-			stDisplayed = 0x04
-		};
-
 	protected:
 		friend GFXGroup;
 		friend GFXView;
 		friend GFXContext;
 
-		virtual void on_state_change(STATE_BITS _b, bool _to);
-
-	private:
-		void set_state_bit(STATE_BITS _bit) noexcept;
-
-		void clear_state_bit(STATE_BITS _bit) noexcept;
-
-		bool check_state_bit(STATE_BITS _bit) const noexcept;
-
-		void handle_event_type(const Event::evGrow& _event);
-
-	protected:
 		void set_parent(GFXView* _to) noexcept;
 		virtual void set_context(GFXContext* _to);
 
 	public:
+		enum OPTION_BITS
+		{
+			opDraw = 0x01,
+			opInput = 0x02
+		};
+
+		constexpr static Event::evUser evOptionSet{ 100 };
+		constexpr static Event::evUser evOptionCleared{ 101 };
+
+		void set_option(OPTION_BITS _op, bool _to) noexcept;
+		bool check_option(OPTION_BITS _op) const noexcept;
+
 		GFXView* parent() const noexcept;
 		bool has_parent() const noexcept;
 
@@ -155,7 +148,7 @@ namespace sae::engine::core
 		GFXContext* context_ = nullptr;
 		GFXView* parent_ = nullptr;
 		GrowMode grow_mode_{};
-		uint8_t state_ = 0x00;
+		uint8_t options_ = 0x00;
 		Rect bounds_{};
 		ZLayer z_{};
 	};
@@ -243,6 +236,9 @@ namespace sae::engine::core
 	*/
 	class GFXContext : public GFXView
 	{
+	private:
+		void process_defered_events();
+
 	public:
 
 		void handle_event(Event& _event) override;
@@ -250,6 +246,9 @@ namespace sae::engine::core
 
 		void register_artist(const std::string& _name, std::unique_ptr<IArtist> _artist);
 		IArtist* find_artist(const std::string& _name);
+
+		virtual void update();
+		void defer(Event _event);
 
 		GLFWwindow* window() const noexcept;
 
@@ -260,6 +259,9 @@ namespace sae::engine::core
 
 	private:
 		GLFWwindow* window_ = nullptr;
+
+		std::queue<Event> defered_events_{};
+
 		std::vector<std::unique_ptr<IArtist>> artists_{};
 		std::unordered_map<std::string, IArtist*> artist_names_{};
 

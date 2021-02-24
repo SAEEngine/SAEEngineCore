@@ -8,7 +8,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 option(SAE_ENGINE_CORE_USE_EXCEPTIONS "enabled use of exceptions" OFF)
 option(SAE_ENGINE_CORE_INSTALL "allows SAE_ENGINE_CORE to generate install files" ON)
 
-project ("SAEEngineCore" LANGUAGES CXX C VERSION 0.0.1)
+project ("SAEEngineCore" VERSION 0.0.1)
 include(CTest)
 
 add_library(${PROJECT_NAME}_Config INTERFACE)

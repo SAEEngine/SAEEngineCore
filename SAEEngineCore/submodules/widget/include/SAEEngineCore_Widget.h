@@ -1,3 +1,4 @@
+#pragma once
 #ifndef SAE_ENGINE_CORE_WIDGET_H
 #define SAE_ENGINE_CORE_WIDGET_H
 
@@ -508,6 +509,51 @@ namespace sae::engine::core
 
 	};
 
+	class WidgetPosition
+	{
+	public:
+
+		constexpr Rect& bounds() noexcept { return this->bounds_; };
+		constexpr const Rect& bounds() const noexcept { return this->bounds_; };
+
+		constexpr ZLayer& zlayer() noexcept { return this->zlayer_; };
+		constexpr const ZLayer& zlayer() const noexcept { return this->zlayer_; };
+
+		constexpr WidgetPosition() noexcept = default;
+		constexpr WidgetPosition(Rect _r, ZLayer _z) noexcept : 
+			bounds_{ _r }, zlayer_{ _z }
+		{};
+		constexpr WidgetPosition(Rect _r) noexcept :
+			WidgetPosition{ _r, {} }
+		{};
+
+	private:
+		Rect bounds_;
+		ZLayer zlayer_;
+	};
+
+	template <typename T>
+	concept cx_widget = requires(T a)
+	{
+		a.bounds();
+		a.zlayer();
+	};
+
+	namespace impl
+	{
+		template <cx_widget LT, cx_widget RT>
+		void match(const LT& _lhs, RT& _rhs)
+		{
+			_rhs.bounds() = _lhs.bounds();
+			_rhs.zlayer() = _lhs.zlayer();
+		};
+	}
+
+	template <cx_widget T, cx_widget... Ts>
+	void match(const T& _parent, Ts&... _dest)
+	{
+		(impl::match(_parent, _dest), ...);
+	};
 
 }
 

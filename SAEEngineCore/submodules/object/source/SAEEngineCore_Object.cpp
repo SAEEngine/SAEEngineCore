@@ -44,21 +44,38 @@ namespace sae::engine::core
 namespace sae::engine::core
 {
 
-	void GFXObject::on_state_change(STATE_BITS _b, bool _to) {};
-
-	void GFXObject::set_state_bit(STATE_BITS _bit) noexcept
+	void GFXObject::set_option(OPTION_BITS _op, bool _to) noexcept
 	{
-		this->state_ |= _bit;
-		this->on_state_change(_bit, true);
-	};
-	void GFXObject::clear_state_bit(STATE_BITS _bit) noexcept
+		auto _old = this->check_option(_op);
+		if (_to)
+		{
+			this->options_ |= _op;
+		}
+		else
+		{
+			this->options_ &= ~_op;
+		};
+		if (_old != _to)
+		{
+			Event _opChangeEvent{};
+			if (_to)
+			{
+				auto _ev = evOptionSet;
+				_ev.content = (int)_op;
+				_opChangeEvent = Event{ _ev, true };
+			}
+			else
+			{
+				auto _ev = evOptionCleared;
+				_ev.content = (int)_op;
+				_opChangeEvent = Event{ _ev, true };
+			};
+			this->handle_event(_opChangeEvent);
+		};
+	};	
+	bool GFXObject::check_option(OPTION_BITS _op) const noexcept
 	{
-		this->state_ &= ~_bit;
-		this->on_state_change(_bit, false);
-	};
-	bool GFXObject::check_state_bit(STATE_BITS _bit) const noexcept
-	{
-		return (this->state_ & _bit) != 0;
+		return (this->options_ & _op) != 0;
 	};
 
 	void GFXObject::set_parent(GFXView* _to) noexcept
@@ -83,11 +100,6 @@ namespace sae::engine::core
 	GFXContext* GFXObject::context() const noexcept
 	{
 		return this->context_;
-	};
-
-	void GFXObject::handle_event_type(const Event::evGrow& _event)
-	{
-		this->grow(_event.dw, _event.dh);
 	};
 
 	Rect& GFXObject::bounds() noexcept
@@ -147,7 +159,7 @@ namespace sae::engine::core
 	};
 
 	GFXObject::GFXObject(Rect _r) :
-		bounds_{ _r }
+		bounds_{ _r }, options_{ opDraw | opInput }
 	{};
 
 	GFXObject::GFXObject() :
@@ -161,13 +173,17 @@ namespace sae::engine::core
 {
 	void GFXGroup::insert_child(value_type _obj)
 	{
+		if (this->context())
+		{
+			_obj->set_context(this->context());
+		};
 		this->children().push_back(std::move(_obj));
 	};
 	void GFXGroup::remove_child(GFXObject* _obj)
 	{
-		this->children().erase(std::find_if(this->children().begin(), this->children().end(), [_obj](const auto& o) {
+		std::erase_if(this->children(), [_obj](const auto& o) {
 			return o.get() == _obj;
-			}));
+		});
 	};
 
 	void GFXGroup::handle_event(Event& _event)
@@ -177,10 +193,13 @@ namespace sae::engine::core
 		{
 			for (auto& o : this->children())
 			{
-				o->handle_event(_event);
-				if (!_event)
+				if (o->check_option(opInput))
 				{
-					break;
+					o->handle_event(_event);
+					if (!_event)
+					{
+						break;
+					};
 				};
 			};
 		};
@@ -297,16 +316,9 @@ namespace sae::engine::core
 	{
 		if (_obj->has_parent())
 		{
-			assert(_obj->parent() != this);
 			_obj->parent()->remove(_obj.get());
 		};
-		assert(!_obj->has_parent());
 		_obj->set_parent(this);
-		if (_obj->context() == nullptr)
-		{
-			assert(this->context() != nullptr);
-			_obj->set_context(this->context());
-		};
 		GFXGroup::insert_child(_obj);
 	};
 	void GFXView::emplace(GFXObject* _obj)
@@ -316,6 +328,9 @@ namespace sae::engine::core
 
 	void GFXView::remove(GFXObject* _obj)
 	{
+		assert(_obj->has_parent());
+		assert(_obj->parent() == this);
+		_obj->set_parent(nullptr);
 		GFXGroup::remove_child(_obj);
 	};
 
@@ -335,6 +350,13 @@ namespace sae::engine::core
 		{
 			o->draw();
 		};
+
+	};
+
+	void GFXContext::update()
+	{
+		this->draw();
+		this->process_defered_events();
 	};
 
 	void GFXContext::handle_event(Event& _event)
@@ -354,6 +376,20 @@ namespace sae::engine::core
 	IArtist* GFXContext::find_artist(const std::string& _name)
 	{
 		return this->artist_names_.at(_name);
+	};
+
+	void GFXContext::process_defered_events()
+	{
+		while (!this->defered_events_.empty())
+		{
+			this->handle_event(this->defered_events_.front());
+			this->defered_events_.pop();
+		};
+	};
+
+	void GFXContext::defer(Event _event)
+	{
+		this->defered_events_.push(_event);
 	};
 
 	GLFWwindow* GFXContext::window() const noexcept
